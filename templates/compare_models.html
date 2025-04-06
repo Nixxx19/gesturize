@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Models - ASL Translator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- Include Plotly.js (needed for rendering comparison charts) -->
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 56px; /* Adjust for fixed navbar */
+        }
+        .navbar {
+            /* Using fixed-top, see body padding */
+        }
+        .container { max-width: 960px; }
+        /* Status message styling */
+        .status {
+            margin-top: 1.5rem;
+            font-weight: 600;
+            padding: 0.8rem 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid transparent;
+            display: none; /* Hide initially */
+        }
+        .status.success { color: #0f5132; background-color: #d1e7dd; border-color: #badbcc; }
+        .status.error   { color: #842029; background-color: #f8d7da; border-color: #f5c2c7; }
+        .status.info    { color: #055160; background-color: #cff4fc; border-color: #b6effb; }
+        .status.warning { color: #664d03; background-color: #fff3cd; border-color: #ffecb5; }
+
+        /* Results Area */
+        .results-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-top: 2px solid #dee2e6;
+            background-color: #ffffff;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            display: none; /* Hide initially */
+        }
+        /* Plot Area Styling (like train.html) */
+        .plot-area {
+            margin-bottom: 2rem;
+            min-height: 380px; /* Standardized min height */
+            border: 1px solid #e9ecef;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Subtle inner shadow */
+        }
+         .plot-area h4 {
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #495057;
+            font-weight: 500;
+            width: 100%;
+        }
+         .plotly-chart-container {
+            width: 100%;
+            height: auto;
+            min-height: 350px; /* Increased min height for plotly */
+        }
+        /* Placeholder/Error Text inside plot areas */
+        .plot-area .placeholder-text,
+        .plot-area .error-text {
+            color: #6c757d;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+            display: none; /* Hide by default, show programmatically */
+            width: 100%; /* Take full width */
+        }
+         .plot-area .error-text {
+             color: #dc3545;
+             font-weight: bold;
+             font-style: normal; /* Errors are not italic */
+         }
+
+        #compare-table thead th {
+             background-color: #e9ecef;
+             position: sticky;
+             top: 0;
+             z-index: 1; /* Ensure header stays above scrolling content */
+             font-size: 0.9rem; /* Slightly smaller header font */
+        }
+         /* Checkbox styling */
+        .algorithm-list {
+            max-height: 200px; /* Limit height */
+            overflow-y: auto;  /* Add scrollbar if needed */
+            border: 1px solid #ced4da;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            background-color: #fff;
+        }
+        .algorithm-list .form-check { margin-bottom: 0.5rem; }
+        .algorithm-list .form-check-label { font-size: 0.95rem; } /* Slightly smaller label text */
+
+         /* Button Spinner Alignment */
+         #compare-button .spinner-border {
+             vertical-align: middle;
+             margin-right: 0.3em;
+         }
+         /* Table styling */
+         .table { font-size: 0.9rem; } /* Smaller table font */
+         .table td, .table th {
+             vertical-align: middle;
+             padding: 0.5rem; /* Reduce padding */
+         }
+          /* Highlight best result */
+         .best-accuracy td { /* Apply style to all cells in the best row */
+             font-weight: bold;
+             background-color: #d1e7dd !important; /* Light green success background */
+             color: #0f5132;
+         }
+         /* Warning paragraph styling */
+          #warnings-paragraph {
+              font-size: 0.85rem;
+              border: 1px dashed #ffecb5;
+              padding: 0.5rem 0.75rem;
+              border-radius: 0.2rem;
+              background-color: #fff3cd;
+          }
+          /* Validation feedback */
+          .invalid-feedback, #algorithms-error {
+               font-size: 0.8em;
+          }
+    </style>
+    <!-- Use jQuery for AJAX and DOM manipulation simplicity -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+         <div class="container-fluid">
+            <a class="navbar-brand" href="/">ASL Translator</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavCompare" aria-controls="navbarNavCompare" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavCompare">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/RTP">Real-Time</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/ImageProcessing">Image Upload</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/train">Train Model</a> </li>
+                    <li class="nav-item"> <a class="nav-link active" aria-current="page" href="/compare">Compare Models</a> </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4 mb-5">
+        <h1 class="mb-3 text-center">Compare Model Performance</h1>
+        <p class="lead text-center mb-4">Select a dataset and the algorithms you want to compare. Models will be trained and evaluated but <strong class="text-danger">NOT saved</strong>.</p>
+
+        <!-- Comparison Form Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                Comparison Setup
+            </div>
+            <div class="card-body">
+                 <form id="compare-form" class="needs-validation" novalidate>
+                     <!-- Dataset Selection Row -->
+                     <div class="mb-3">
+                         <label for="dataset" class="form-label fw-semibold">Dataset File:</label>
+                         <select class="form-select form-select-sm" id="dataset" name="dataset" required>
+                             <option value="" disabled selected>-- Select a dataset --</option>
+                             {% if datasets %}
+                                 {% for dataset in datasets %}
+                                     <option value="{{ dataset }}">{{ dataset }}</option>
+                                 {% endfor %}
+                             {% else %}
+                                  <option value="" disabled>No .pkl datasets found in '{{ DATASET_DIR | default('static/files/datasets') }}'</option>
+                             {% endif %}
+                         </select>
+                         <div class="invalid-feedback">A dataset file is required.</div>
+                     </div>
+
+                    <!-- Algorithm Selection (Checkboxes) -->
+                    <div class="mb-3">
+                         <label class="form-label fw-semibold">Select Algorithms to Compare:</label>
+                         <div id="algorithm-checkbox-group" class="algorithm-list">
+                            {% if algorithms %}
+                                {% for algo_key, algo_name in algorithms.items() %}
+                                    <div class="form-check">
+                                        <input class="form-check-input algorithm-checkbox" type="checkbox" value="{{ algo_key }}" id="algo-{{ loop.index }}" name="algorithms">
+                                        <label class="form-check-label" for="algo-{{ loop.index }}">
+                                            {{ algo_name }} <!-- Display friendly name -->
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                             {% else %}
+                                 <p class="text-muted">No algorithms available for comparison.</p>
+                             {% endif %}
+                         </div>
+                         <div id="algorithms-error" class="text-danger mt-1" style="display: none;">Please select at least one algorithm.</div>
+                     </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end pt-2">
+                         <button type="reset" class="btn btn-outline-secondary btn-sm me-2">Clear Selections</button>
+                        <button type="submit" id="compare-button" class="btn btn-primary btn-sm">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                            <span id="compare-button-text">Compare Selected Models</span>
+                        </button>
+                    </div>
+                </form>
+             </div>
+         </div>
+
+
+        <!-- Status Message Area -->
+        <div id="status" class="status"></div>
+
+        <!-- Results Container (Initially Hidden) -->
+        <div id="results-container" class="results-container">
+            <h2 class="text-center mb-4 border-bottom pb-2">Comparison Results</h2>
+
+            <!-- Comparison Table -->
+            <div class="table-responsive mb-4"> <!-- Added margin-bottom -->
+                <table id="compare-table" class="table table-striped table-bordered table-hover table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Model Algorithm</th>
+                            <th>Test Accuracy (%)</th>
+                            <th>Training Time (sec)</th>
+                            <th>Train Samples</th>
+                            <th>Test Samples</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body">
+                        <!-- Results will be populated here by JavaScript -->
+                         <tr>
+                             <td colspan="5" class="text-center text-muted placeholder-row">Select options and click "Compare" to see results.</td>
+                         </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Warnings -->
+            <p id="warnings-paragraph" class="text-warning mt-3" style="display: none;"></p>
+
+             <!-- Charts Row -->
+             <div class="row gy-4 mt-3"> <!-- Added row for charts -->
+
+                 <!-- Accuracy Comparison Chart -->
+                <div class="col-lg-6">
+                    <div class="plot-area" id="accuracy-comparison-container">
+                        <h4>Algorithm Accuracy Comparison</h4>
+                        <div id="accuracy-comparison-chart" class="plotly-chart-container">
+                             <!-- Placeholder/Error Texts for Accuracy Comparison Chart -->
+                             <p class="placeholder-text">Accuracy comparison chart will appear here.</p>
+                             <p class="error-text">Accuracy comparison data not available.</p>
+                         </div>
+                    </div>
+                 </div>
+
+                 <!-- Training Time Comparison Chart -->
+                <div class="col-lg-6">
+                     <div class="plot-area" id="time-comparison-container">
+                         <h4>Algorithm Training Time Comparison</h4>
+                          <div id="time-comparison-chart" class="plotly-chart-container">
+                               <!-- Placeholder/Error Texts for Time Comparison Chart -->
+                               <p class="placeholder-text">Training time comparison chart will appear here.</p>
+                               <p class="error-text">Training time comparison data not available.</p>
+                          </div>
+                    </div>
+                 </div>
+
+                  <!-- Dataset Label Distribution Chart (for context) -->
+                  <div class="col-lg-6">
+                       <div class="plot-area" id="comparison-distribution-container">
+                           <h4>Dataset Label Distribution</h4>
+                           <div id="comparison-distribution-chart" class="plotly-chart-container">
+                               <!-- Placeholder/Error Texts for Distribution Chart -->
+                               <p class="placeholder-text">Label distribution chart will appear here.</p>
+                               <p class="error-text">Label distribution data not available.</p>
+                           </div>
+                      </div>
+                  </div>
+
+                  <!-- Data Split Chart (for context) -->
+                  <div class="col-lg-6">
+                        <div class="plot-area" id="comparison-split-container">
+                            <h4>Data Split (Train/Test)</h4>
+                            <div id="comparison-split-chart" class="plotly-chart-container">
+                                 <!-- Placeholder/Error Texts for Data Split Chart -->
+                                 <p class="placeholder-text">Data split chart will appear here.</p>
+                                 <p class="error-text">Data split data not available.</p>
+                             </div>
+                        </div>
+                   </div>
+
+             </div> <!-- End Charts Row -->
+
+        </div> <!-- /results-container -->
+
+    </div> <!-- /container -->
+
+     <!-- Bootstrap JS Bundle (usually place at end of body) -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            // --- DOM Element References ---
+            const $compareForm = $('#compare-form');
+            const $datasetSelect = $('#dataset');
+            const $algorithmCheckboxes = $('.algorithm-checkbox');
+            const $algorithmsError = $('#algorithms-error');
+            const $compareButton = $('#compare-button');
+            const $compareButtonSpinner = $compareButton.find('.spinner-border');
+            const $compareButtonText = $compareButton.find('#compare-button-text');
+            const $statusDiv = $('#status');
+            const $resultsContainer = $('#results-container');
+            const $resultsTableBody = $('#results-table-body');
+            const $warningsParagraph = $('#warnings-paragraph');
+            const $placeholderRow = $('.placeholder-row');
+
+            // Chart Elements
+            const $accuracyComparisonChartDiv = $('#accuracy-comparison-chart');
+            const $accuracyComparisonPlaceholder = $('#accuracy-comparison-container').find('.placeholder-text');
+            const $accuracyComparisonError = $('#accuracy-comparison-container').find('.error-text');
+
+            const $timeComparisonChartDiv = $('#time-comparison-chart');
+            const $timeComparisonPlaceholder = $('#time-comparison-container').find('.placeholder-text');
+            const $timeComparisonError = $('#time-comparison-container').find('.error-text');
+
+            const $distributionChartDiv = $('#comparison-distribution-chart');
+            const $distributionPlaceholder = $('#comparison-distribution-container').find('.placeholder-text');
+            const $distributionError = $('#comparison-distribution-container').find('.error-text');
+
+            const $splitChartDiv = $('#comparison-split-chart');
+            const $splitPlaceholder = $('#comparison-split-container').find('.placeholder-text');
+            const $splitError = $('#comparison-split-container').find('.error-text');
+
+
+            // --- Helper Functions ---
+            function updateStatus(message, type = 'info') {
+                 $statusDiv.removeClass('info success error warning'); // Clear existing
+                if (message) {
+                     $statusDiv.html(message).addClass(type).slideDown(); // Use html() for potential formatting
+                 } else {
+                      $statusDiv.slideUp(function() { $(this).html(''); });
+                 }
+            }
+
+            function displayWarnings(warnings) {
+                 if (warnings && warnings.length > 0) {
+                     const warningMsg = "<strong>Warnings:</strong> " + warnings.join('; ');
+                     $warningsParagraph.html(warningMsg).show(); // Use html() and show
+                 } else {
+                      $warningsParagraph.hide().html(''); // Hide and clear
+                 }
+            }
+
+             // Function to render Plotly charts (similar to train.html)
+             function renderPlotlyChart(targetDivId, plotJsonString, placeholderElement, errorElement, errorPlaceholderText) {
+                placeholderElement.hide();
+                errorElement.hide();
+                const targetDiv = document.getElementById(targetDivId);
+                if (!targetDiv) {
+                    console.error(`Target div for Plotly chart not found: #${targetDivId}`);
+                    errorElement.text('Chart container element not found.').show();
+                    return;
+                }
+                targetDiv.innerHTML = ''; // Clear previous content
+                console.log(`Attempting to render Plotly chart in #${targetDivId}...`);
+
+                if (plotJsonString && plotJsonString !== 'null' && plotJsonString.trim() !== '') {
+                    try {
+                        const plotData = JSON.parse(plotJsonString);
+                        // Basic check for Plotly structure
+                         if (!plotData || typeof plotData !== 'object' || (!plotData.data && !plotData.layout)) {
+                             throw new Error("Parsed JSON does not seem to be a valid Plotly object.");
+                         }
+                         const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] };
+                         Plotly.newPlot(targetDiv, plotData.data || [], plotData.layout || {}, config);
+                         console.log(`Successfully rendered Plotly chart in #${targetDivId}.`);
+                         $(targetDiv).show(); // Ensure div is visible after plotting
+
+                     } catch (e) {
+                         console.error(`Error parsing/rendering Plotly chart in #${targetDivId}:`, e);
+                         console.error("Received JSON string:", plotJsonString);
+                         targetDiv.innerHTML = ''; // Clear potentially broken elements
+                         errorElement.text(errorPlaceholderText || 'Error rendering chart.').show();
+                         placeholderElement.hide(); // Ensure placeholder is hidden
+                         $(targetDiv).hide(); // Hide the div itself if error occurs
+                     }
+                 } else {
+                     console.warn(`Plotly JSON data missing or null for #${targetDivId}. Displaying placeholder.`);
+                     errorElement.text(errorPlaceholderText || 'Chart data not available.').show();
+                     placeholderElement.hide(); // Hide normal placeholder
+                     $(targetDiv).hide(); // Hide the plot div if no data
+                  }
+             }
+
+
+            function clearResultsArea() {
+                $resultsContainer.slideUp(100); // Quick hide
+                // Reset table body to placeholder state
+                $resultsTableBody.empty().append($placeholderRow.clone().show()); // Show the placeholder row
+                displayWarnings([]); // Clear warnings display
+
+                 // Clear all Plotly charts and show placeholders
+                 const clearPlotlyArea = (chartDiv, placeholder, error) => {
+                     try { Plotly.purge(chartDiv[0].id); } catch(e) {} // Purge chart if exists
+                     chartDiv.empty().hide();       // Clear and hide the chart div
+                     placeholder.show(); // Show the placeholder text
+                     error.hide();       // Hide the error text
+                 };
+
+                 clearPlotlyArea($accuracyComparisonChartDiv, $accuracyComparisonPlaceholder, $accuracyComparisonError);
+                 clearPlotlyArea($timeComparisonChartDiv, $timeComparisonPlaceholder, $timeComparisonError);
+                 clearPlotlyArea($distributionChartDiv, $distributionPlaceholder, $distributionError);
+                 clearPlotlyArea($splitChartDiv, $splitPlaceholder, $splitError);
+
+                 // Don't clear status here, usually handled by the next action
+            }
+
+             function setCompareButtonState(isComparing) {
+                 if (isComparing) {
+                     $compareButton.prop('disabled', true);
+                     $compareButtonSpinner.show();
+                     $compareButtonText.text('Comparing...');
+                 } else {
+                     $compareButton.prop('disabled', false);
+                     $compareButtonSpinner.hide();
+                     $compareButtonText.text('Compare Selected Models');
+                 }
+             }
+
+             function validateForm() {
+                 let isValid = true;
+                 // Reset validation states
+                 $compareForm.removeClass('was-validated');
+                 $('.is-invalid').removeClass('is-invalid');
+                 $algorithmsError.hide();
+
+                 if (!$datasetSelect.val()) {
+                     $datasetSelect.addClass('is-invalid');
+                     isValid = false;
+                 }
+
+                 if ($algorithmCheckboxes.filter(':checked').length === 0) {
+                     $algorithmsError.show();
+                     $('#algorithm-checkbox-group').addClass('is-invalid'); // Requires custom CSS if needed
+                     isValid = false;
+                 } else {
+                     $('#algorithm-checkbox-group').removeClass('is-invalid');
+                 }
+
+                 // Add was-validated class to show feedback *after* checking
+                 $compareForm.addClass('was-validated');
+                 return isValid;
+             }
+
+            // --- Form Submit Handler ---
+            $compareForm.on('submit', function (event) {
+                event.preventDefault(); // Always prevent default form submission
+
+                if (!validateForm()) {
+                    updateStatus('Please correct the errors highlighted in the form.', 'error');
+                    clearResultsArea(); // Clear results if validation fails
+                    return; // Stop processing
+                }
+
+                // Get form values
+                const dataset = $datasetSelect.val();
+                const selectedAlgorithms = $algorithmCheckboxes.filter(':checked').map(function() {
+                    return $(this).val();
+                }).get();
+
+                // Update UI for processing state
+                updateStatus('Starting comparison process on server, this may take a moment...', 'info');
+                setCompareButtonState(true);
+                clearResultsArea(); // Clear previous results before new request
+
+                console.log('Sending comparison request:', { dataset: dataset, algorithms: selectedAlgorithms });
+
+                // --- AJAX Request ---
+                $.ajax({
+                    url: '/compare_models_run', // Endpoint for comparison
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        dataset: dataset,
+                        algorithms: selectedAlgorithms
+                    }),
+                    dataType: 'json', // Expect JSON response
+                    success: function (response) {
+                        console.log('Received comparison response:', response);
+                        $resultsTableBody.empty(); // Clear placeholder/previous results
+                        $placeholderRow.hide(); // Explicitly hide placeholder row
+
+                        let bestAccuracy = -1;
+                        let hasResults = false;
+
+                        // Populate Results Table
+                        if (response.results && response.results.length > 0) {
+                            hasResults = true;
+                            // Find the best accuracy among valid results
+                            response.results.forEach(result => {
+                                if (result.accuracy !== null && result.accuracy > bestAccuracy) {
+                                     bestAccuracy = result.accuracy;
+                                 }
+                            });
+
+                            // Sort by accuracy descending (handle nulls by placing them last)
+                            response.results.sort((a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1));
+
+                            response.results.forEach(result => {
+                                const accuracy = result.accuracy;
+                                const accuracyPercent = accuracy !== null ? (accuracy * 100).toFixed(2) + '%' : 'N/A';
+                                const trainingTime = result.training_time !== null ? parseFloat(result.training_time).toFixed(3) : 'N/A';
+                                const trainCount = result.train_count || 'N/A';
+                                const testCount = result.test_count || 'N/A';
+                                const isBest = (accuracy !== null && accuracy === bestAccuracy);
+                                const rowClass = isBest ? 'best-accuracy' : '';
+
+                                const row = `<tr class="${rowClass}">
+                                    <td>${result.model_name || result.algorithm_key}</td>
+                                    <td>${accuracyPercent}</td>
+                                    <td>${trainingTime}</td>
+                                    <td>${trainCount}</td>
+                                    <td>${testCount}</td>
+                                </tr>`;
+                                $resultsTableBody.append(row);
+                            });
+                             updateStatus('Comparison complete.', 'success');
+
+                        } else {
+                             // No results returned, display message in table
+                             $resultsTableBody.append('<tr><td colspan="5" class="text-center text-warning">No valid model results were generated. Check logs or dataset.</td></tr>');
+                             updateStatus('Comparison finished, but no model results were generated.', 'warning');
+                        }
+
+                        // Display warnings if any exist
+                        displayWarnings(response.warnings);
+
+                         // Render Charts (These will use data from the response object)
+                        renderPlotlyChart('accuracy-comparison-chart', response.accuracy_comparison_plot_json, $accuracyComparisonPlaceholder, $accuracyComparisonError, 'Accuracy comparison data unavailable.');
+                        renderPlotlyChart('time-comparison-chart', response.time_comparison_plot_json, $timeComparisonPlaceholder, $timeComparisonError, 'Training time comparison data unavailable.');
+                        renderPlotlyChart('comparison-distribution-chart', response.distribution_plot_json, $distributionPlaceholder, $distributionError, 'Label distribution data unavailable.');
+                        renderPlotlyChart('comparison-split-chart', response.data_split_plot_json, $splitPlaceholder, $splitError, 'Data split data unavailable.');
+
+                        // Show the results container now that content is ready (or errors shown)
+                        $resultsContainer.slideDown(400);
+
+                    },
+                    error: function (xhr) {
+                        let errorMessage = 'An unexpected error occurred during the comparison.';
+                         try {
+                             const errorResponse = JSON.parse(xhr.responseText);
+                              if (errorResponse && errorResponse.message) {
+                                  errorMessage = 'Error: ' + errorResponse.message;
+                              } else if (xhr.statusText) {
+                                 errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                              }
+                          } catch (e) {
+                             // Fallback if parsing fails
+                             if (xhr.statusText && xhr.status !== 0) {
+                                 errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                             } else if (xhr.status === 0) {
+                                 errorMessage = 'Error: Cannot connect to the server or request was cancelled.';
+                             }
+                          }
+                        console.error("Comparison AJAX Error:", xhr.status, xhr.statusText, xhr.responseText);
+                        updateStatus(errorMessage, 'error');
+                        clearResultsArea(); // Clear potentially partially drawn results on error
+                        $resultsTableBody.empty().append('<tr><td colspan="5" class="text-center text-danger">An error occurred. Please check the logs.</td></tr>'); // Show error in table
+                         $resultsContainer.slideDown(200); // Show container with error msg
+                    },
+                    complete: function() {
+                         setCompareButtonState(false); // Always re-enable button
+                    }
+                }); // End AJAX call
+            }); // End form submit handler
+
+            // --- Form Reset Event Handler ---
+            $compareForm.on('reset', function() {
+                 clearResultsArea();
+                 // Reset validation states
+                 $(this).removeClass('was-validated');
+                 $('.is-invalid').removeClass('is-invalid');
+                 $algorithmsError.hide();
+                 $('#algorithm-checkbox-group').removeClass('is-invalid');
+                 updateStatus(''); // Clear status message
+            });
+
+             // --- Input Change Handlers for Instant Validation Feedback ---
+             $datasetSelect.on('change', function() {
+                 if ($(this).val()) { $(this).removeClass('is-invalid'); }
+                 clearResultsArea(); // Clear results when dataset changes
+                 updateStatus('');
+             });
+             $algorithmCheckboxes.on('change', function() {
+                 if ($algorithmCheckboxes.filter(':checked').length > 0) {
+                     $algorithmsError.hide();
+                      $('#algorithm-checkbox-group').removeClass('is-invalid');
+                 }
+                  // Optionally clear results when algorithm selection changes
+                 // clearResultsArea();
+                 // updateStatus('');
+             });
+
+            // --- Initial State Setup ---
+            clearResultsArea(); // Ensure clean state on load
+
+        }); // --- End document ready ---
+    </script>
+</body>
+</html>

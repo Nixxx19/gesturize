@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASL Translator - Image Processing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+             padding-top: 56px; /* Adjust for fixed navbar height */
+             background-color: #f8f9fa; /* Light background */
+        }
+        .navbar {
+             /* Using fixed-top, see body padding */
+        }
+        #image-upload-card { /* Apply styling to the card */
+            margin: 1rem auto 20px auto;
+            border: 1px solid #ccc;
+            background-color: #ffffff; /* White card background */
+            padding: 20px;
+            text-align: center;
+            border-radius: 0.375rem; /* Added Bootstrap border radius */
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        #uploaded-images-container { /* Container for results */
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #ffffff;
+            border-radius: 0.375rem;
+            min-height: 150px; /* Ensure it has some height */
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        #uploaded-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* Increased gap */
+            justify-content: center;
+            align-items: flex-start; /* Align items top */
+        }
+        .image-wrapper {
+            position: relative;
+            display: flex; /* Use flex for centering spinner */
+            flex-direction: column; /* Stack image and overlay */
+            align-items: center;
+            justify-content: center; /* Center spinner */
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            background-color: #e9ecef;
+            width: 160px; /* Fixed width */
+            height: 160px; /* Fixed height */
+            text-align: center;
+        }
+        .image-wrapper img {
+            display: block;
+            max-width: 100%; /* Fill width */
+            max-height: 100%; /* Fill height */
+            object-fit: contain; /* Scale image while preserving aspect ratio */
+            opacity: 0; /* Start hidden, fade in */
+            transition: opacity 0.5s ease-in-out;
+        }
+        .image-wrapper.loaded img {
+             opacity: 1; /* Fade in image when loaded */
+        }
+        .image-wrapper .spinner-border { /* Spinner for loading image */
+            position: absolute; /* Center spinner */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2rem;
+            height: 2rem;
+            color: #6c757d;
+        }
+         .image-wrapper.loaded .spinner-border {
+             display: none; /* Hide spinner once image is shown */
+         }
+
+        .image-wrapper .prediction-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            text-align: center;
+            padding: 4px 6px;
+            font-size: 0.9rem; /* Larger font */
+            font-weight: bold;
+            opacity: 0; /* Start hidden */
+            transition: opacity 0.3s ease-in-out 0.1s; /* Fade in prediction slightly delayed */
+        }
+        .image-wrapper.predicted .prediction-overlay {
+            opacity: 1; /* Fade in when result arrives */
+        }
+         /* Error display within image wrapper */
+         .image-wrapper .error-text {
+             font-size: 0.8rem;
+             color: #dc3545;
+             font-weight: bold;
+             padding: 5px;
+         }
+
+        #combined-prediction-container { /* Changed ID */
+            font-size: 1.2rem;
+            margin-top: 20px;
+            word-wrap: break-word;
+            padding: 12px 15px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #combined-prediction-container strong {
+            color: #495057;
+        }
+        #combined-output {
+            font-weight: bold;
+            font-family: monospace; /* Monospace for better letter alignment */
+            letter-spacing: 2px; /* Space out letters */
+            font-size: 1.5rem; /* Larger combined output */
+            color: #0d6efd;
+            display: block; /* Put output on new line */
+            margin-top: 5px;
+        }
+
+        #current-model-info {
+             font-size: 0.9rem;
+             color: #6c757d;
+             margin-top: -10px;
+             margin-bottom: 15px;
+             text-align: center;
+        }
+         #current-model-name {
+             font-weight: bold;
+             color: #495057;
+             background-color: #e9ecef;
+             padding: 0.1rem 0.4rem;
+             border-radius: 0.2rem;
+         }
+         /* Loading indicator for process button */
+        #process-button .spinner-grow {
+            width: 1rem; /* Smaller spinner */
+            height: 1rem;
+            vertical-align: text-bottom;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">ASL Translator</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/RTP">Real-Time</a> </li>
+                    <li class="nav-item"> <a class="nav-link active" aria-current="page" href="/ImageProcessing">Image Upload</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/train">Train Model</a> </li>
+                     <li class="nav-item"> <a class="nav-link" href="/compare">Compare Models</a> </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="text-center mb-3">ASL Sign Recognition from Images</h1>
+
+        <!-- Status Message Area -->
+        <div id="status-message" class="alert alert-light alert-dismissible fade show" role="alert">
+            Connecting...
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Model Selection Form -->
+        <form id="model-form" class="mb-3">
+             <div class="row align-items-end g-2">
+                 <div class="col-md">
+                     <label for="model-select" class="form-label mb-1">Select Model</label>
+                     <select class="form-select form-select-sm" id="model-select" required>
+                         <option value="" disabled selected>Loading models...</option>
+                         {% for model in model_files %}
+                            <option value="{{ model }}">{{ model }}</option>
+                         {% else %}
+                            <option value="" disabled>No models found</option>
+                         {% endfor %}
+                     </select>
+                      <div class="invalid-feedback">Please select a model.</div>
+                 </div>
+                 <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Use Selected Model</button>
+                 </div>
+            </div>
+        </form>
+
+        <!-- Display Current Model -->
+         <div id="current-model-info">
+             Current Model: <span id="current-model-name">None</span>
+         </div>
+
+        <!-- Image Upload Card -->
+        <div id="image-upload-card">
+            <form id="image-upload-form" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="image-upload" class="form-label">Upload One or More Images (JPG, PNG, WebP, etc.)</label>
+                    <input type="file" id="image-upload" class="form-control form-control-sm" accept="image/*" multiple required>
+                     <div class="invalid-feedback">Please select at least one image file.</div>
+                </div>
+                <button type="submit" id="process-button" class="btn btn-success mt-2">
+                    <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                    <span id="process-button-text">Process Images</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Uploaded Images and Predictions Container -->
+        <div id="uploaded-images-container">
+            <h4 class="mt-1 text-center text-muted">Results</h4>
+             <hr class="my-2"> <!-- Divider -->
+            <div id="uploaded-images">
+                 <p class="text-muted text-center w-100">Upload images and click "Process Images" to see results here.</p>
+            </div>
+        </div>
+
+        <!-- Combined Predicted Text -->
+        <div id="combined-prediction-container" class="alert alert-secondary mt-4"> <!-- Changed ID -->
+            <strong>Combined Prediction:</strong> <span id="combined-output">None</span>
+        </div>
+    </div>
+
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- DOM Elements ---
+        const modelForm = document.getElementById('model-form');
+        const modelSelect = document.getElementById('model-select');
+        const statusMessage = document.getElementById('status-message');
+        const imageUploadForm = document.getElementById('image-upload-form');
+        const imageUploadInput = document.getElementById('image-upload');
+        const uploadedImagesContainer = document.getElementById('uploaded-images');
+        const combinedOutput = document.getElementById('combined-output');
+        const currentModelNameDisplay = document.getElementById('current-model-name');
+        const processButton = document.getElementById('process-button');
+        const processButtonSpinner = processButton.querySelector('.spinner-grow');
+        const processButtonText = document.getElementById('process-button-text');
+
+        // --- State ---
+        let combinedPredictions = {}; // Use an object: { originalIndex: prediction }
+        let imageCounter = 0; // To ensure unique dataset indices for display elements
+        let processingCounter = 0; // Count how many images are currently being processed by backend
+        let expectedResults = 0; // How many results we expect back for the current batch
+
+        // --- Socket.IO Connection ---
+        console.log("IMG: Initializing Socket.IO connection...");
+        const socket = io({
+            reconnectionAttempts: 5,
+            timeout: 10000
+        });
+
+        socket.on('connect', () => {
+            console.log('IMG: Socket.IO Connected! SID:', socket.id);
+            enableForms();
+             if (modelSelect.options.length > 1 && modelSelect.selectedIndex <= 0) {
+                modelSelect.options[0].textContent = '-- Select a model --';
+             } else if (modelSelect.options.length <= 1 && modelSelect.options[0]?.disabled) {
+                 modelSelect.options[0].textContent = 'No models found';
+                 disableForms('No models available');
+             }
+             // Server usually sends status_update on connect with current model
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('IMG: Socket.IO Disconnected. Reason:', reason);
+            updateStatus(`Disconnected: ${reason}. Please refresh.`, 'alert-danger');
+            disableForms('Disconnected');
+            updateCurrentModelDisplay(null);
+            setProcessButtonState(false, 0); // Reset button if disconnected during processing
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('IMG: Socket.IO Connection Error:', err);
+            updateStatus(`Connection failed: ${err.message}. Is the server running?`, 'alert-danger');
+            disableForms('Connection Error');
+            updateCurrentModelDisplay(null);
+            setProcessButtonState(false, 0);
+        });
+
+        socket.on('prediction_result', (data) => {
+            // Check if it's an image processing result
+            if (data.imageIndex !== undefined && data.originalIndex !== undefined) {
+                processingCounter = Math.max(0, processingCounter - 1); // Decrement counter
+
+                const imageWrapper = document.querySelector(`.image-wrapper[data-unique-id="${data.imageIndex}"]`);
+                if (imageWrapper) {
+                    // Remove loading spinner
+                    const spinner = imageWrapper.querySelector('.spinner-border');
+                    if (spinner) spinner.remove();
+
+                    let overlay = imageWrapper.querySelector('.prediction-overlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'prediction-overlay';
+                        imageWrapper.appendChild(overlay);
+                    }
+                    let predictionText = 'N/A';
+                    let predictionClass = 'text-light'; // Default overlay text color
+                     switch(data.prediction) {
+                        case "No Hand":
+                             predictionText = "No Hand";
+                             predictionClass = 'text-warning'; // Yellow for no hand
+                             break;
+                        case "No Model":
+                        case "Input Error":
+                        case "Predict Error":
+                        case "Bad Request":
+                            predictionText = "Error";
+                             predictionClass = 'text-danger'; // Red for errors
+                             break;
+                         default:
+                             predictionText = data.prediction || 'N/A'; // Valid prediction
+                    }
+                    overlay.textContent = predictionText;
+                    overlay.classList.add(predictionClass); // Add color class
+                    imageWrapper.classList.add('predicted'); // Trigger overlay fade-in
+
+                    // Store prediction using originalIndex as the key
+                    combinedPredictions[data.originalIndex] = (data.prediction && !predictionClass.includes('danger') && !predictionClass.includes('warning')) ? data.prediction : '?'; // Use '?' for errors/no-hand/NA
+
+
+                } else {
+                     console.warn(`IMG: Received prediction for unknown imageIndex: ${data.imageIndex}`);
+                }
+
+                 // Update combined output and button state when all results are in
+                 if (processingCounter === 0) {
+                        updateCombinedOutput();
+                        setProcessButtonState(false, expectedResults); // Re-enable button now
+                        updateStatus(`Processed ${expectedResults} image(s).`, 'alert-success');
+                } else {
+                         setProcessButtonState(true, processingCounter); // Update button text
+                 }
+
+            }
+            // Update the current model display if the server sends it
+            if (data.current_model !== undefined) {
+                updateCurrentModelDisplay(data.current_model);
+            }
+        });
+
+        socket.on('status_update', (data) => {
+             console.log('IMG: Received status_update:', data);
+             let alertClass = 'alert-info';
+             const messageLower = data.message?.toLowerCase() || '';
+             if (messageLower.includes('error') || messageLower.includes('failed')) {
+                 alertClass = 'alert-danger';
+             } else if (messageLower.includes('warning')) {
+                 alertClass = 'alert-warning';
+             } else if (messageLower.includes('success') || messageLower.includes('loaded') || messageLower.includes('selected') || messageLower.includes('using model')) {
+                 alertClass = 'alert-success';
+             }
+             updateStatus(data.message || 'Received status update without message.', alertClass);
+
+             if (data.current_model !== undefined) {
+                  updateCurrentModelDisplay(data.current_model);
+             }
+
+             if (messageLower.includes('no models available') || messageLower.includes('no models found')) {
+                  if (modelSelect.options.length <= 1 && modelSelect.options[0]?.disabled) {
+                     disableForms('No models available');
+                  }
+             } else if (alertClass !== 'alert-danger') {
+                 enableForms();
+             }
+         });
+
+
+        // --- Helper Functions ---
+         function updateStatus(message, alertClass = 'alert-light') {
+            if (!statusMessage) return;
+            let closeButton = statusMessage.querySelector('.btn-close');
+            if (!closeButton) {
+                closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'btn-close';
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
+            }
+            statusMessage.textContent = message;
+            statusMessage.appendChild(closeButton);
+            statusMessage.className = `alert ${alertClass} alert-dismissible fade`;
+            void statusMessage.offsetWidth;
+            statusMessage.classList.add('show');
+        }
+
+        function updateCurrentModelDisplay(modelName) {
+             if (currentModelNameDisplay) {
+                  currentModelNameDisplay.textContent = modelName || 'None';
+                  currentModelNameDisplay.style.fontWeight = modelName ? 'bold' : 'normal';
+             }
+         }
+
+        function setProcessButtonState(isProcessing, count = 0) {
+            if (isProcessing) {
+                processButton.disabled = true;
+                processButtonSpinner.style.display = 'inline-block';
+                processButtonText.textContent = `Processing (${count} left)...`;
+            } else {
+                processButton.disabled = false;
+                processButtonSpinner.style.display = 'none';
+                processButtonText.textContent = 'Process Images';
+            }
+        }
+
+        function disableForms(reason = '') {
+            console.log("IMG: Disabling forms, reason:", reason);
+            modelSelect.disabled = true;
+            modelSelect.classList.remove('is-invalid'); // Clear validation visual
+            modelForm.querySelector('button[type="submit"]').disabled = true;
+            imageUploadInput.disabled = true;
+            imageUploadInput.classList.remove('is-invalid'); // Clear validation visual
+            processButton.disabled = true;
+            setProcessButtonState(false); // Ensure spinner is hidden
+            if(reason) processButtonText.textContent = reason;
+        }
+
+        function enableForms() {
+             console.log("IMG: Enabling forms.");
+             const modelsExist = modelSelect.options.length > 1 || (modelSelect.options.length === 1 && !modelSelect.options[0].disabled);
+             const isConnected = socket.connected;
+
+             modelSelect.disabled = !(modelsExist && isConnected);
+             modelForm.querySelector('button[type="submit"]').disabled = modelSelect.disabled;
+
+             imageUploadInput.disabled = !isConnected;
+             processButton.disabled = !isConnected;
+             setProcessButtonState(false); // Ensure button text/state is idle if enabled
+
+             if (!isConnected && modelsExist) {
+                 updateStatus("Connect to server to select model and upload images.", "alert-warning");
+             } else if (!modelsExist && isConnected) {
+                  updateStatus("No models available. Please train or upload a model.", "alert-warning");
+                  disableForms('No models available'); // Explicitly disable if no models
+             }
+        }
+
+        function updateCombinedOutput() {
+             // Create the output string by iterating through expected indices
+            let outputString = "";
+            for (let i = 0; i < expectedResults; i++) {
+                outputString += combinedPredictions[i] || '?'; // Append prediction or '?'
+            }
+            combinedOutput.textContent = outputString || 'None';
+        }
+
+        // --- Event Listeners ---
+        modelForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+             if (!socket.connected) {
+                updateStatus('Cannot select model: Not connected.', 'alert-warning');
+                return;
+             }
+            const selectedModel = modelSelect.value;
+            modelSelect.classList.remove('is-invalid'); // Clear previous validation
+
+            if (!selectedModel) {
+                updateStatus('Please select a model first.', 'alert-warning');
+                modelSelect.classList.add('is-invalid'); // Show validation feedback
+                return;
+            }
+            console.log(`IMG: Requesting model change to: ${selectedModel}`);
+            socket.emit('select_model', { model_name: selectedModel });
+            updateStatus(`Requesting to use model: ${selectedModel}...`, 'alert-info');
+        });
+
+        // Clear validation on model select change
+        modelSelect.addEventListener('change', () => {
+            modelSelect.classList.remove('is-invalid');
+        });
+
+
+        imageUploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            imageUploadInput.classList.remove('is-invalid'); // Reset validation
+
+             if (!socket.connected) {
+                updateStatus('Cannot process images: Not connected.', 'alert-warning');
+                return;
+             }
+            const files = imageUploadInput.files;
+            if (!files.length) {
+                imageUploadInput.classList.add('is-invalid'); // Show validation feedback
+                updateStatus('Please upload at least one image.', 'alert-warning');
+                return;
+            }
+             const currentModel = currentModelNameDisplay.textContent;
+             if (!currentModel || currentModel === 'None') {
+                updateStatus('Please select a model before processing images.', 'alert-warning');
+                modelSelect.classList.add('is-invalid');
+                return;
+            }
+
+
+            uploadedImagesContainer.innerHTML = ''; // Clear previous results area
+            combinedPredictions = {}; // Reset prediction storage object
+            imageCounter = 0; // Reset unique ID counter for this batch
+            processingCounter = 0; // Will be incremented for valid files
+            expectedResults = files.length; // Start with total files, will decrement for invalid ones
+            setProcessButtonState(true, expectedResults); // Show initial loading state
+
+            // Filter files first
+             const imageFiles = Array.from(files).filter(file => {
+                 if (!file.type.startsWith('image/')) {
+                     console.warn(`IMG: Skipping non-image file: ${file.name}`);
+                     expectedResults--; // Decrement expected count for non-images
+                     return false; // Exclude from processing
+                 }
+                 return true;
+             });
+
+             if (imageFiles.length === 0) {
+                  updateStatus(`No valid image files selected.`, 'alert-warning');
+                  setProcessButtonState(false, 0);
+                  uploadedImagesContainer.innerHTML = '<p class="text-muted text-center w-100">No valid images to process.</p>';
+                  imageUploadInput.value = ''; // Clear file input
+                  return;
+             }
+
+             processingCounter = imageFiles.length; // Set counter to number of valid images
+             setProcessButtonState(true, processingCounter); // Update button text
+             updateStatus(`Processing ${processingCounter} image(s)...`, 'alert-info');
+
+            imageFiles.forEach((file, index) => {
+                 // Note: 'index' here is the index within the filtered imageFiles array,
+                 // which might differ from the original FileList index if non-images were skipped.
+                 // We need the original index for correct ordering in combinedPredictions.
+                 // A robust way is to map original indices or process the original array.
+
+                 // Let's stick to the original approach using the original file list index
+                 // Re-iterate original files to get the correct originalIndex
+                 const originalIndex = Array.from(files).findIndex(originalFile => originalFile === file);
+
+                const reader = new FileReader();
+
+                reader.onload = () => {
+                    const uniqueId = imageCounter++; // Unique ID for the DOM element
+
+                    const imageWrapper = document.createElement('div');
+                    imageWrapper.className = 'image-wrapper';
+                    imageWrapper.dataset.uniqueId = uniqueId;
+                    imageWrapper.dataset.originalIndex = originalIndex; // Store original index
+
+                     // Add spinner while loading image preview
+                    const spinner = document.createElement('div');
+                    spinner.className = 'spinner-border';
+                    spinner.setAttribute('role', 'status');
+                    spinner.innerHTML = '<span class="visually-hidden">Loading...</span>';
+                    imageWrapper.appendChild(spinner);
+
+                    const img = document.createElement('img');
+                    img.alt = `Uploaded image ${originalIndex + 1}`;
+                    img.onload = () => { // When the image preview itself has loaded
+                         imageWrapper.classList.add('loaded'); // Trigger fade-in of image
+                    };
+                    img.onerror = () => { // Handle image preview load errors
+                        console.error(`IMG: Error loading image preview for ${file.name}`);
+                         spinner.remove(); // Remove spinner on error too
+                        imageWrapper.innerHTML = `<p class="error-text">Preview Error</p>`;
+                        // Note: Server processing might still succeed, but preview failed.
+                         // We still emitted the process_image request.
+                    };
+                    img.src = reader.result; // Set src AFTER attaching onload/onerror
+
+                    // Add placeholder for prediction (will be created on result)
+                    // const placeholderOverlay = document.createElement('div');
+                    // placeholderOverlay.className = 'prediction-overlay';
+                    // placeholderOverlay.textContent = '...';
+
+                    imageWrapper.appendChild(img);
+                    // imageWrapper.appendChild(placeholderOverlay); // Don't add placeholder, create on result
+
+                    // Clear the initial "Upload images..." message if it's still there
+                     const initialMsg = uploadedImagesContainer.querySelector('p.text-muted');
+                     if (initialMsg) initialMsg.remove();
+
+                    uploadedImagesContainer.appendChild(imageWrapper);
+
+                    // Send image data to server
+                    try {
+                         const base64Data = reader.result.split(',')[1];
+                         if (!base64Data) throw new Error("Base64 data extraction failed.");
+                         socket.emit('process_image', {
+                            image: base64Data,
+                            imageIndex: uniqueId,
+                            originalIndex: originalIndex // Send original index
+                         });
+                     } catch (emitError) {
+                         console.error("Error preparing or emitting process_image event:", emitError);
+                         // Handle UI for emit error if needed (e.g., show error on image wrapper)
+                         spinner.remove();
+                         imageWrapper.innerHTML = `<p class="error-text">Send Error</p>`;
+                         imageWrapper.classList.add('predicted'); // Show error immediately
+                         processingCounter = Math.max(0, processingCounter - 1);
+                         combinedPredictions[originalIndex] = '?'; // Mark as error
+                          if (processingCounter === 0) {
+                             updateCombinedOutput();
+                             setProcessButtonState(false, 0);
+                         }
+                     }
+                }; // end reader.onload
+
+                reader.onerror = () => {
+                    console.error("IMG: Error reading file:", file.name);
+                    updateStatus(`Error reading file: ${file.name}`, 'alert-danger');
+                    processingCounter = Math.max(0, processingCounter - 1);
+                    // Find the original index to mark error
+                    const originalIndex = Array.from(files).findIndex(originalFile => originalFile === file);
+                    combinedPredictions[originalIndex] = '?';
+                     // Create a placeholder to show the error if onload didn't fire
+                     // (This part is tricky as the element might not exist yet)
+                     // Best to just update the counter and rely on the final check.
+                    if (processingCounter === 0) {
+                        updateCombinedOutput();
+                        setProcessButtonState(false, 0);
+                    } else {
+                        setProcessButtonState(true, processingCounter);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }); // end forEach imageFile
+
+            imageUploadInput.value = ''; // Clear the file input after starting processing
+        }); // end form submit
+
+        // Clear validation on file select change
+        imageUploadInput.addEventListener('change', () => {
+            imageUploadInput.classList.remove('is-invalid');
+        });
+
+        // --- Initial Setup ---
+        console.log("IMG: Running initial page load setup.");
+        updateCurrentModelDisplay(null);
+        disableForms('Connecting...');
+        setProcessButtonState(false, 0); // Ensure button is initially idle
+
+    </script>
+</body>
+</html>

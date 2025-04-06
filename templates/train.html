@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Model - ASL Translator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <!-- Include Chart.js (for animated accuracy chart) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Include Plotly.js (for interactive distribution and split charts) -->
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <style>
+        body {
+             background-color: #f8f9fa;
+             padding-top: 56px; /* Adjust for fixed navbar height */
+        }
+        .navbar {
+             /* Using fixed-top, see body padding */
+        }
+        .container { max-width: 960px; }
+        /* Status message styling */
+        .status {
+             margin-top: 1.5rem;
+             font-weight: 600;
+             padding: 0.8rem 1rem;
+             border-radius: 0.25rem;
+             border: 1px solid transparent;
+             display: none; /* Hide initially */
+        }
+        .status.success { color: #0f5132; background-color: #d1e7dd; border-color: #badbcc; }
+        .status.error   { color: #842029; background-color: #f8d7da; border-color: #f5c2c7; }
+        .status.info    { color: #055160; background-color: #cff4fc; border-color: #b6effb; }
+        .status.warning { color: #664d03; background-color: #fff3cd; border-color: #ffecb5; }
+
+        /* Card Styling */
+        .card {
+             margin-bottom: 2rem; /* Space below card */
+        }
+
+        /* Results Area */
+        .results-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-top: 2px solid #dee2e6;
+            background-color: #ffffff;
+            border-radius: 0.375rem; /* Bootstrap standard */
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            display: none; /* Hide initially */
+        }
+        .plot-area {
+            margin-bottom: 2rem;
+            min-height: 380px; /* Standardized min height */
+            border: 1px solid #e9ecef;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Subtle inner shadow */
+        }
+         .plot-area h4 {
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #495057;
+            font-weight: 500;
+            width: 100%;
+        }
+        /* Chart/Plot Specific Styles */
+        #accuracyChartCanvas {
+             max-height: 350px;
+             width: 100% !important;
+             display: block;
+        }
+        .plotly-chart-container {
+            width: 100%;
+            height: auto;
+            min-height: 350px; /* Increased min height for plotly */
+        }
+         /* Placeholder/Error Text inside plot areas */
+        .plot-area .placeholder-text,
+        .plot-area .error-text {
+            color: #6c757d;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+            display: none; /* Hide by default, show programmatically */
+            width: 100%; /* Take full width */
+        }
+         .plot-area .error-text {
+             color: #dc3545;
+             font-weight: bold;
+             font-style: normal; /* Errors are not italic */
+         }
+
+        /* Training Time Styling */
+        #training-time-info {
+             font-size: 1.1em; /* Slightly smaller */
+             margin: 0.5rem 0 1.5rem 0;
+             text-align: center;
+             color: #5a6268;
+             display: none; /* Hide initially */
+        }
+         #training-time-value {
+             font-weight: bold;
+             color: #0d6efd;
+             font-size: 1.1em;
+         }
+          /* Button Spinner Alignment */
+         #train-button .spinner-border {
+             vertical-align: middle;
+             margin-right: 0.3em;
+         }
+         /* Ensure form elements have good spacing */
+         .form-label { margin-bottom: 0.25rem; }
+         .form-text { font-size: 0.8em; }
+         .needs-validation .form-control:invalid,
+         .needs-validation .form-select:invalid {
+             border-color: #dc3545;
+         }
+          .needs-validation .form-control:valid,
+         .needs-validation .form-select:valid {
+             border-color: #198754;
+         }
+    </style>
+    <!-- Use jQuery for AJAX and DOM manipulation simplicity -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+         <div class="container-fluid">
+            <a class="navbar-brand" href="/">ASL Translator</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavTrain" aria-controls="navbarNavTrain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavTrain">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/RTP">Real-Time</a> </li>
+                    <li class="nav-item"> <a class="nav-link" href="/ImageProcessing">Image Upload</a> </li>
+                    <li class="nav-item"> <a class="nav-link active" aria-current="page" href="/train">Train Model</a> </li>
+                     <li class="nav-item"> <a class="nav-link" href="/compare">Compare Models</a> </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4 mb-5">
+        <h1 class="mb-3 text-center">Train a New Model</h1>
+        <p class="lead text-center mb-4">Select a dataset, algorithm, and name for your new model. The trained model will be saved for later use.</p>
+
+        <!-- Training Form Card -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                Training Configuration
+            </div>
+            <div class="card-body">
+                 <form id="train-form" class="needs-validation" novalidate>
+                    <!-- Dataset & Algorithm Selection Row -->
+                     <div class="row mb-3 g-3"> <!-- Added g-3 for gutters -->
+                        <div class="col-md-6">
+                            <label for="dataset" class="form-label fw-semibold">Dataset File:</label>
+                            <select class="form-select form-select-sm" id="dataset" name="dataset" required>
+                                <option value="" disabled selected>-- Select a dataset --</option>
+                                {% if datasets %}
+                                    {% for dataset in datasets %}
+                                        <option value="{{ dataset }}">{{ dataset }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                     <option value="" disabled>No .pkl datasets found in '{{ DATASET_DIR | default('static/files/datasets') }}'</option>
+                                {% endif %}
+                            </select>
+                            <div class="invalid-feedback">A dataset file is required.</div>
+                        </div>
+                         <div class="col-md-6">
+                             <label for="algorithm" class="form-label fw-semibold">Training Algorithm:</label>
+                             <select class="form-select form-select-sm" id="algorithm" name="algorithm" required>
+                                 <option value="" disabled selected>-- Select an algorithm --</option>
+                                 {% if algorithms %}
+                                    {% for algorithm in algorithms %}
+                                        {# Use title case for display, value is the lowercase key #}
+                                        <option value="{{ algorithm }}">{{ algorithm | title }}</option>
+                                    {% endfor %}
+                                 {% else %}
+                                    <option value="" disabled>No algorithms available</option>
+                                 {% endif %}
+                             </select>
+                             <div class="invalid-feedback">Please select a training algorithm.</div>
+                         </div>
+                    </div>
+                    <!-- Model Name Input -->
+                    <div class="mb-3">
+                        <label for="model-name" class="form-label fw-semibold">New Model Name:</label>
+                        <input type="text" class="form-control form-control-sm" id="model-name" name="model-name"
+                               placeholder="e.g., my_svm_model_v2" required pattern="^[a-zA-Z0-9_\-]+$"
+                               aria-describedby="modelNameHelp">
+                        <div id="modelNameHelp" class="form-text">Unique name using letters, numbers, underscores, hyphens. '.pkl' added automatically. Cannot be empty.</div>
+                        <div class="invalid-feedback" id="model-name-feedback">Provide a valid, unique model name (letters/numbers/-/_ allowed).</div>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end pt-2">
+                         <button type="reset" class="btn btn-outline-secondary btn-sm me-2">Clear Form</button>
+                        <button type="submit" id="train-button" class="btn btn-primary btn-sm">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                            <span id="train-button-text">Train Model</span>
+                        </button>
+                    </div>
+                </form>
+             </div>
+         </div>
+
+
+        <!-- Status Message Area -->
+        <div id="status" class="status"></div>
+
+        <!-- Results Container (Initially Hidden) -->
+        <div id="results-container" class="results-container">
+            <h2 class="text-center mb-4 border-bottom pb-2">Training Results</h2>
+
+            <!-- Training Time Display -->
+            <div id="training-time-info">
+                 Training Time: <span id="training-time-value">N/A</span> seconds
+            </div>
+
+            <div class="row gy-4">
+                <!-- Accuracy Chart Area (Chart.js) -->
+                <div class="col-lg-6">
+                    <div class="plot-area" id="accuracy-chart-container">
+                         <h4>Model Accuracy (Test Set)</h4>
+                         <canvas id="accuracyChartCanvas" aria-label="Model Accuracy Chart"></canvas>
+                         <p class="placeholder-text">Chart will appear here.</p>
+                         <p class="error-text">Accuracy data not available.</p>
+                    </div>
+                </div>
+
+                 <!-- Data Split Chart Area (Plotly) -->
+                <div class="col-lg-6">
+                    <div class="plot-area" id="datasplit-chart-container">
+                         <h4>Data Split (Train/Test)</h4>
+                         <div id="datasplit-plotly-chart" class="plotly-chart-container" aria-label="Data Split Chart">
+                             <p class="placeholder-text">Chart will appear here after training.</p>
+                             <p class="error-text">Data split chart data not available.</p>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Distribution Plot Area (Plotly) -->
+                <div class="col-12">
+                     <div class="plot-area" id="distribution-chart-container">
+                          <h4>Dataset Label Distribution</h4>
+                          <div id="distribution-plotly-chart" class="plotly-chart-container" aria-label="Label Distribution Chart">
+                               <p class="placeholder-text">Chart will appear here after training.</p>
+                               <p class="error-text">Label distribution chart data not available.</p>
+                          </div>
+                     </div>
+                 </div>
+            </div>
+
+        </div> <!-- /results-container -->
+
+    </div> <!-- /container -->
+
+     <!-- Bootstrap JS Bundle (includes Popper) -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            let accuracyChartInstance = null;
+
+            // --- DOM Element References ---
+            const $trainForm = $('#train-form');
+            const $trainButton = $('#train-button');
+            const $trainButtonSpinner = $trainButton.find('.spinner-border');
+            const $trainButtonText = $trainButton.find('#train-button-text');
+            const $statusDiv = $('#status');
+            const $resultsContainer = $('#results-container');
+            const $trainingTimeInfo = $('#training-time-info');
+            const $trainingTimeValue = $('#training-time-value');
+            const $accuracyChartContainer = $('#accuracy-chart-container');
+            const $accuracyCanvas = $('#accuracyChartCanvas');
+            const $accuracyPlaceholder = $accuracyChartContainer.find('.placeholder-text');
+            const $accuracyError = $accuracyChartContainer.find('.error-text');
+            const $datasplitChartDiv = $('#datasplit-plotly-chart');
+            const $datasplitPlaceholder = $('#datasplit-chart-container').find('.placeholder-text');
+            const $datasplitError = $('#datasplit-chart-container').find('.error-text');
+            const $distributionChartDiv = $('#distribution-plotly-chart');
+            const $distributionPlaceholder = $('#distribution-chart-container').find('.placeholder-text');
+            const $distributionError = $('#distribution-chart-container').find('.error-text');
+            const $modelNameInput = $('#model-name');
+            const $modelNameFeedback = $('#model-name-feedback');
+
+
+            // --- Bootstrap Form Validation Trigger ---
+            $trainForm.on('submit', function (event) {
+                const form = this;
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Clear previous validation states and custom errors
+                $(form).removeClass('was-validated');
+                $('.is-invalid').removeClass('is-invalid'); // Clear all invalid states
+                $modelNameFeedback.text('Provide a valid, unique model name (letters/numbers/-/_ allowed).'); // Reset feedback
+
+                if (!form.checkValidity()) {
+                    updateStatus('Please correct the errors highlighted in the form.', 'error');
+                    clearResultsArea();
+                } else {
+                    submitTrainingRequest(); // Proceed if HTML5 validation passes
+                }
+                form.classList.add('was-validated'); // Show Bootstrap validation styles
+            });
+
+            // --- Helper Functions ---
+             function updateStatus(message, type = 'info') {
+                $statusDiv.removeClass('info success error warning'); // Clear existing types
+                if (message) {
+                    $statusDiv.html(message) // Use html() to allow potential links/bolding
+                           .addClass(type)
+                           .slideDown();
+                 } else {
+                    $statusDiv.slideUp(function() { $(this).html(''); });
+                 }
+             }
+
+            function clearResultsArea() {
+                $resultsContainer.slideUp(100); // Faster slide up
+
+                $trainingTimeInfo.hide();
+                $trainingTimeValue.text('N/A');
+
+                // Clear accuracy chart
+                if (accuracyChartInstance) {
+                    accuracyChartInstance.destroy();
+                    accuracyChartInstance = null;
+                }
+                $accuracyCanvas.hide();
+                $accuracyPlaceholder.show(); // Show placeholder
+                $accuracyError.hide();
+
+                // Clear Plotly charts and restore placeholders
+                const clearPlotly = (divId, placeholder, error) => {
+                    try { Plotly.purge(divId); } catch(e) {}
+                    $('#' + divId).empty(); // Clear the div content entirely
+                    placeholder.show();
+                    error.hide();
+                };
+                clearPlotly('datasplit-plotly-chart', $datasplitPlaceholder, $datasplitError);
+                clearPlotly('distribution-plotly-chart', $distributionPlaceholder, $distributionError);
+            }
+
+             function setTrainingButtonState(isTraining) {
+                 if (isTraining) {
+                     $trainButton.prop('disabled', true);
+                     $trainButtonSpinner.show();
+                     $trainButtonText.text('Training...');
+                 } else {
+                     $trainButton.prop('disabled', false);
+                     $trainButtonSpinner.hide();
+                     $trainButtonText.text('Train Model');
+                 }
+             }
+
+             function renderAccuracyChart(finalAccuracy) {
+                $accuracyPlaceholder.hide();
+                $accuracyError.hide();
+
+                if (finalAccuracy === undefined || finalAccuracy === null || isNaN(finalAccuracy)) {
+                    console.warn("Accuracy data invalid for chart:", finalAccuracy);
+                    $accuracyCanvas.hide();
+                    $accuracyError.text('Accuracy data not available.').show();
+                    return;
+                }
+
+                const canvas = $accuracyCanvas[0];
+                if (!canvas) { console.error("Accuracy chart canvas not found!"); return; }
+                const ctx = canvas.getContext('2d');
+                const accuracyPercent = finalAccuracy * 100;
+
+                if (accuracyChartInstance) accuracyChartInstance.destroy();
+                $accuracyCanvas.show();
+
+                accuracyChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Test Accuracy'],
+                        datasets: [{
+                            label: 'Accuracy',
+                            data: [accuracyPercent],
+                            backgroundColor: accuracyPercent >= 80 ? 'rgba(25, 135, 84, 0.6)' : // Success green >= 80
+                                             accuracyPercent >= 60 ? 'rgba(255, 193, 7, 0.6)' : // Warning yellow >= 60
+                                             'rgba(220, 53, 69, 0.6)', // Danger red < 60
+                            borderColor: accuracyPercent >= 80 ? 'rgb(25, 135, 84)' :
+                                         accuracyPercent >= 60 ? 'rgb(255, 193, 7)' :
+                                         'rgb(220, 53, 69)',
+                            borderWidth: 1,
+                            barPercentage: 0.4 // Makes the bar thinner
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        animation: { duration: 1200, easing: 'easeOutCubic' },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: { display: true, text: 'Accuracy (%)' }
+                            },
+                            y: { display: true }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: `Final Test Accuracy: ${accuracyPercent.toFixed(2)}%`, font: { size: 16 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.dataset.label || ''}: ${context.parsed.x.toFixed(2)}%`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            function renderPlotlyChart(targetDivId, plotJsonString, placeholderElement, errorElement, errorPlaceholderText) {
+                placeholderElement.hide();
+                errorElement.hide();
+                const targetDiv = document.getElementById(targetDivId);
+                if (!targetDiv) {
+                    console.error(`Target div for Plotly chart not found: #${targetDivId}`);
+                    errorElement.text('Chart container element not found.').show();
+                    return;
+                }
+                targetDiv.innerHTML = ''; // Clear previous content
+                console.log(`Attempting to render Plotly chart in #${targetDivId}...`);
+
+                if (plotJsonString && plotJsonString !== 'null') {
+                    try {
+                        const plotData = JSON.parse(plotJsonString);
+                        const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] };
+                        Plotly.newPlot(targetDivId, plotData.data, plotData.layout, config);
+                        console.log(`Successfully rendered Plotly chart in #${targetDivId}.`);
+                    } catch (e) {
+                        console.error(`Error parsing/rendering Plotly chart in #${targetDivId}:`, e);
+                        console.error("Received JSON string:", plotJsonString);
+                        targetDiv.innerHTML = ''; // Clear potentially broken elements
+                        errorElement.text(errorPlaceholderText || 'Error rendering chart.').show();
+                    }
+                } else {
+                     console.warn(`Plotly JSON data missing or null for #${targetDivId}. Displaying placeholder.`);
+                     errorElement.text(errorPlaceholderText || 'Chart data not available.').show();
+                 }
+            }
+
+
+            // --- Function to handle AJAX submission ---
+            function submitTrainingRequest() {
+                const dataset = $('#dataset').val();
+                const algorithm = $('#algorithm').val();
+                const modelName = $modelNameInput.val().trim(); // Trim whitespace
+
+                // Extra client-side check for empty model name after trim
+                if (!modelName) {
+                     $modelNameInput.addClass('is-invalid');
+                     $modelNameFeedback.text('Model name cannot be empty.');
+                     $trainForm.addClass('was-validated'); // Ensure feedback shows
+                     updateStatus('Please provide a model name.', 'error');
+                     return;
+                }
+
+
+                updateStatus('Training request submitted. Processing on server, please wait...', 'info');
+                setTrainingButtonState(true);
+                clearResultsArea(); // Clear previous results before new request
+
+                console.log('Sending training request:', { dataset, algorithm, 'model-name': modelName });
+
+                $.ajax({
+                    url: '/train_model',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        dataset: dataset,
+                        algorithm: algorithm,
+                        'model-name': modelName
+                    }),
+                    dataType: 'json',
+                    success: function (response) {
+                        console.log('Received training response:', response);
+                        let statusType = 'success';
+                        if (response.accuracy < 0.6) { statusType = 'warning'; } // Example warning threshold
+                        updateStatus(response.message, statusType);
+                        $resultsContainer.slideDown(400);
+
+                        if (response.training_time !== undefined && response.training_time !== null) {
+                             $trainingTimeValue.text(parseFloat(response.training_time).toFixed(3));
+                             $trainingTimeInfo.show();
+                        }
+
+                        renderAccuracyChart(response.accuracy);
+                        renderPlotlyChart('datasplit-plotly-chart', response.data_split_plot_json, $datasplitPlaceholder, $datasplitError, 'Data split chart data unavailable.');
+                        renderPlotlyChart('distribution-plotly-chart', response.distribution_plot_json, $distributionPlaceholder, $distributionError, 'Label distribution chart data unavailable.');
+                    },
+                    error: function (xhr) {
+                        let errorMessage = 'An unexpected error occurred during training.';
+                        let specificField = null; // To highlight specific input on error
+                         try {
+                             const errorResponse = JSON.parse(xhr.responseText);
+                              if (errorResponse && errorResponse.message) {
+                                  errorMessage = errorResponse.message;
+                                  if (xhr.status === 409) { // Conflict - Model exists
+                                       specificField = '#model-name';
+                                       $modelNameFeedback.text(errorMessage); // Show specific error message
+                                   } else if (xhr.status === 404) { specificField = '#dataset'; }
+                                     else if (xhr.status === 400) {
+                                        if(errorMessage.toLowerCase().includes('model name')) {
+                                             specificField = '#model-name';
+                                             $modelNameFeedback.text(errorMessage);
+                                         }
+                                        else if(errorMessage.toLowerCase().includes('dataset')) specificField = '#dataset';
+                                        else if(errorMessage.toLowerCase().includes('algorithm')) specificField = '#algorithm';
+                                   }
+                              } else if (xhr.statusText) {
+                                 errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                              }
+                          } catch (e) {
+                             if (xhr.statusText && xhr.status !== 0) {
+                                 errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                             } else if (xhr.status === 0) {
+                                 errorMessage = 'Error: Cannot connect to the server or request was cancelled.';
+                             }
+                          }
+                        console.error("Training AJAX Error Details:", xhr.status, xhr.statusText, xhr.responseText);
+                        updateStatus(errorMessage, 'error');
+                        clearResultsArea(); // Hide results area on error
+
+                         if (specificField) {
+                              $(specificField).addClass('is-invalid');
+                         }
+                         // Ensure form validation state is shown after error
+                         $trainForm.addClass('was-validated');
+                    },
+                    complete: function() {
+                         setTrainingButtonState(false); // Always re-enable button
+                    }
+                }); // End AJAX call
+            } // End submitTrainingRequest
+
+
+            // --- Form Reset Event Handler ---
+            $trainForm.on('reset', function() {
+                 clearResultsArea();
+                 $(this).removeClass('was-validated'); // Reset validation state visually
+                 $('.is-invalid').removeClass('is-invalid'); // Clear all invalid highlights
+                 $modelNameFeedback.text('Provide a valid, unique model name (letters/numbers/-/_ allowed).'); // Reset feedback text
+                 updateStatus(''); // Clear any status messages
+            });
+
+             // --- Input Change Handlers (Optional: Clear validation on change) ---
+             $('#dataset, #algorithm, #model-name').on('input change', function() {
+                if ($(this).hasClass('is-invalid')) {
+                     $(this).removeClass('is-invalid');
+                }
+                 // Reset model name feedback specifically if that input changes
+                 if ($(this).is('#model-name')) {
+                     $modelNameFeedback.text('Provide a valid, unique model name (letters/numbers/-/_ allowed).');
+                 }
+             });
+
+            // --- Initial State Setup on Page Load ---
+            clearResultsArea(); // Ensure everything is hidden/cleared initially
+
+        }); // --- End document ready ---
+    </script>
+</body>
+</html>
