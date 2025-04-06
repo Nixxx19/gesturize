@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,268 +7,171 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <style>
         body {
-            padding-top: 56px;
-            /* Adjust for fixed navbar height */
-            background-color: #f8f9fa;
-            /* Light background */
+             padding-top: 56px; /* Adjust for fixed navbar height */
+             background-color: #f8f9fa; /* Light background */
         }
-
         .navbar {
-            /* Using fixed-top, see body padding */
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+             /* Using fixed-top, see body padding */
+             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         }
-
         #camera-container {
             position: relative;
             width: 100%;
-            max-width: 640px;
-            /* Limit camera view size */
-            margin: 1rem auto 15px auto;
-            /* Center it, adjust margin */
+            max-width: 640px; /* Limit camera view size */
+            margin: 1rem auto 15px auto; /* Center it, adjust margin */
             border: 1px solid #ccc;
-            background-color: #000;
-            /* Black background for camera */
-            border-radius: 0.375rem;
-            /* Add rounding */
-            overflow: hidden;
-            /* Ensure video fits rounding */
-            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-            /* Add subtle shadow */
+            background-color: #000; /* Black background for camera */
+            border-radius: 0.375rem; /* Add rounding */
+            overflow: hidden; /* Ensure video fits rounding */
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1); /* Add subtle shadow */
         }
-
         #camera-feed {
             width: 100%;
-            height: auto;
-            /* Maintain aspect ratio */
-            display: block;
-            /* Remove extra space below video */
-            /* Mirroring will be controlled by JS via the 'mirrored' class */
-        }
-
-        /* Apply horizontal flip only when the 'mirrored' class is present */
-        #camera-feed.mirrored {
+            height: auto; /* Maintain aspect ratio */
+            display: block; /* Remove extra space below video */
+             /* Flip horizontally to mimic mirror */
             transform: scaleX(-1);
         }
-
         #camera-placeholder {
             width: 100%;
-            background-color: #343a40;
-            /* Darker placeholder */
+            background-color: #343a40; /* Darker placeholder */
             display: flex;
-            flex-direction: column;
-            /* Stack icon and text */
+            flex-direction: column; /* Stack icon and text */
             justify-content: center;
             align-items: center;
-            color: #adb5bd;
-            /* Lighter text */
+            color: #adb5bd; /* Lighter text */
             text-align: center;
-            padding: 40px 20px;
-            /* More padding */
-            min-height: 300px;
-            /* Ensure placeholder has height */
+            padding: 40px 20px; /* More padding */
+            min-height: 300px; /* Ensure placeholder has height */
             font-size: 1.1rem;
-            border-radius: 0.375rem;
-            /* Match container rounding */
+            border-radius: 0.375rem; /* Match container rounding */
         }
-
-        #camera-placeholder svg {
-            /* Style for placeholder icon */
+         #camera-placeholder svg { /* Style for placeholder icon */
             width: 50px;
             height: 50px;
             margin-bottom: 1rem;
-            fill: #6c757d;
-            /* Secondary color */
-        }
+            fill: #6c757d; /* Secondary color */
+         }
 
-        #predicted-text-label,
-        #sequence-label {
-            font-weight: 500;
-            /* Slightly bolder */
+        #predicted-text-label, #sequence-label {
+            font-weight: 500; /* Slightly bolder */
             font-size: 0.9rem;
-            color: #495057;
-            /* Darker label */
+            color: #495057; /* Darker label */
             margin-right: 8px;
-            display: block;
-            /* Put label on its own line */
+            display: block; /* Put label on its own line */
             margin-bottom: 0.35rem;
-            text-transform: uppercase;
-            /* Uppercase labels */
+            text-transform: uppercase; /* Uppercase labels */
             letter-spacing: 0.5px;
         }
-
-        #predicted-output,
-        #sequence-output {
-            font-weight: bold;
-            font-size: 1.9rem;
-            /* Larger output text */
-            min-height: 1.5em;
-            /* Prevent layout jump */
-            display: inline-block;
-            letter-spacing: 2px;
-            /* Space out letters */
-            line-height: 1.2;
-            font-family: 'Courier New', Courier, monospace;
-            /* Monospace for sequence */
-            transition: color 0.3s ease;
-            /* Smooth color transition */
+        #predicted-output, #sequence-output {
+             font-weight: bold;
+             font-size: 1.9rem; /* Larger output text */
+             min-height: 1.5em; /* Prevent layout jump */
+             display: inline-block;
+             letter-spacing: 2px; /* Space out letters */
+             line-height: 1.2;
+             font-family: 'Courier New', Courier, monospace; /* Monospace for sequence */
+             transition: color 0.3s ease; /* Smooth color transition */
         }
-
         #predicted-output {
-            color: #0d6efd;
-            /* Bootstrap primary blue */
-            font-family: Arial, sans-serif;
-            /* Sans-serif for single prediction */
-            letter-spacing: 1px;
-            font-size: 2.1rem;
-            /* Even larger for current sign */
+             color: #0d6efd; /* Bootstrap primary blue */
+             font-family: Arial, sans-serif; /* Sans-serif for single prediction */
+             letter-spacing: 1px;
+             font-size: 2.1rem; /* Even larger for current sign */
         }
-
         /* Style specific predictions */
-        #predicted-output.no-hand {
-            color: #ffc107;
-        }
-
-        /* Warning yellow */
-        #predicted-output.error {
-            color: #dc3545;
-        }
-
-        /* Danger red */
-        #predicted-output.none {
-            color: #6c757d;
-            font-weight: normal;
-            font-size: 1.5rem;
-            letter-spacing: normal;
-        }
-
-        /* Muted */
+        #predicted-output.no-hand { color: #ffc107; } /* Warning yellow */
+        #predicted-output.error { color: #dc3545; } /* Danger red */
+        #predicted-output.none { color: #6c757d; font-weight: normal; font-size: 1.5rem; letter-spacing: normal; } /* Muted */
 
 
         #sequence-output {
-            color: #198754;
-            /* Bootstrap success green for sequence */
+            color: #198754; /* Bootstrap success green for sequence */
         }
+         #sequence-output.none { color: #6c757d; font-weight: normal; font-size: 1.5rem; letter-spacing: normal;} /* Muted */
 
-        #sequence-output.none {
-            color: #6c757d;
-            font-weight: normal;
-            font-size: 1.5rem;
-            letter-spacing: normal;
-        }
-
-        /* Muted */
-
-        #predicted-text-container,
-        #sequence-container {
-            margin-top: 10px;
-            word-wrap: break-word;
-            /* Prevent long sequences from overflowing */
-            padding: 15px;
-            /* More padding */
-            border-radius: 0.375rem;
-            text-align: center;
-            min-height: 110px;
-            /* Give slightly more default height */
-            background-color: #fff;
-            /* White background */
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border: 1px solid #e0e0e0;
+        #predicted-text-container, #sequence-container {
+             margin-top: 10px;
+             word-wrap: break-word; /* Prevent long sequences from overflowing */
+             padding: 15px; /* More padding */
+             border-radius: 0.375rem;
+             text-align: center;
+             min-height: 110px; /* Give slightly more default height */
+             background-color: #fff; /* White background */
+             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+             border: 1px solid #e0e0e0;
         }
 
         /* Hidden canvas */
-        #snapshot-canvas {
-            display: none;
-        }
+        #snapshot-canvas { display: none; }
 
-        /* Status message */
-        .alert {
-            margin-bottom: 1rem;
-        }
+         /* Status message */
+         .alert { margin-bottom: 1rem; }
 
         /* Current model display */
         #current-model-info {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-top: -5px;
-            /* Pull up slightly */
-            margin-bottom: 15px;
-            text-align: center;
+             font-size: 0.9rem;
+             color: #6c757d;
+             margin-top: -5px; /* Pull up slightly */
+             margin-bottom: 15px;
+             text-align: center;
         }
-
-        #current-model-name {
-            font-weight: bold;
-            color: #495057;
-            background-color: #e9ecef;
-            padding: 0.1rem 0.4rem;
-            border-radius: 0.2rem;
-            display: inline-block;
-            /* Prevent stretching */
-            max-width: 300px;
-            /* Prevent overly long names breaking layout */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            vertical-align: middle;
-            /* Align better if text wraps */
-        }
-
-        #current-model-name.none {
-            font-weight: normal;
-            background-color: transparent;
-            padding: 0;
-        }
-
-        /* Control button styling */
-        .control-buttons button {
-            min-width: 160px;
-            /* Give buttons a minimum width */
+         #current-model-name {
+             font-weight: bold;
+             color: #495057;
+             background-color: #e9ecef;
+             padding: 0.1rem 0.4rem;
+             border-radius: 0.2rem;
+             display: inline-block; /* Prevent stretching */
+             max-width: 300px; /* Prevent overly long names breaking layout */
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+             vertical-align: middle; /* Align better if text wraps */
+         }
+         #current-model-name.none {
+             font-weight: normal;
+             background-color: transparent;
+             padding: 0;
+         }
+         /* Control button styling */
+         .control-buttons button {
+            min-width: 160px; /* Give buttons a minimum width */
             font-weight: 500;
-        }
-
-        .control-buttons .spinner-border {
+         }
+         .control-buttons .spinner-border {
             width: 1em;
             height: 1em;
             margin-right: 0.4em;
-            vertical-align: -0.15em;
-            /* Align spinner better with text */
-        }
-
-        /* Spinner for switch camera button */
-        #switch-camera .spinner-border {
-            width: 1em;
-            height: 1em;
-        }
-
-        /* Validation feedback */
-        .form-select.is-invalid {
+            vertical-align: -0.15em; /* Align spinner better with text */
+         }
+         /* Validation feedback */
+         .form-select.is-invalid {
             border-color: #dc3545;
-            padding-right: calc(1.5em + 0.75rem);
-            /* Adjust padding for icon */
+            padding-right: calc(1.5em + 0.75rem); /* Adjust padding for icon */
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23dc3545' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M1 1l14 14m0-14L1 15'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
             background-size: 1rem 1rem;
-        }
+         }
     </style>
 </head>
-
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
-        <div class="container-fluid">
+         <div class="container-fluid">
             <a class="navbar-brand" href="/">ASL Translator</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
-                    <li class="nav-item"> <a class="nav-link active" aria-current="page" href="/RTP">Real-Time</a> </li>
-                    <li class="nav-item"> <a class="nav-link" href="/ImageProcessing">Image Upload</a> </li>
-                    <li class="nav-item"> <a class="nav-link" href="/train">Train Model</a> </li>
-                    <li class="nav-item"> <a class="nav-link" href="/compare">Compare Models</a> </li>
-                </ul>
+             <div class="collapse navbar-collapse" id="navbarNav">
+                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                     <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+                     <li class="nav-item"> <a class="nav-link active" aria-current="page" href="/RTP">Real-Time</a> </li>
+                     <li class="nav-item"> <a class="nav-link" href="/ImageProcessing">Image Upload</a> </li>
+                     <li class="nav-item"> <a class="nav-link" href="/train">Train Model</a> </li>
+                     <li class="nav-item"> <a class="nav-link" href="/compare">Compare Models</a> </li>
+                 </ul>
             </div>
         </div>
     </nav>
@@ -285,24 +187,24 @@
 
         <!-- Model Selection Form -->
         <form id="model-form" class="mb-3">
-            <div class="row align-items-end g-2">
-                <div class="col-md">
-                    <label for="model-select" class="form-label mb-1">Select Model</label>
-                    <select class="form-select form-select-sm" id="model-select" required>
-                        <option value="" disabled selected>Loading models...</option>
-                        {% if model_files %}
-                        {% for model in model_files %}
-                        <option value="{{ model }}">{{ model }}</option>
-                        {% endfor %}
-                        {% else %}
-                        <option value="" disabled>No models found</option>
-                        {% endif %}
-                    </select>
-                    <div class="invalid-feedback">Please select a model.</div>
-                </div>
-                <div class="col-md-auto">
+             <div class="row align-items-end g-2">
+                 <div class="col-md">
+                     <label for="model-select" class="form-label mb-1">Select Model</label>
+                     <select class="form-select form-select-sm" id="model-select" required>
+                         <option value="" disabled selected>Loading models...</option>
+                         {% if model_files %}
+                            {% for model in model_files %}
+                            <option value="{{ model }}">{{ model }}</option>
+                            {% endfor %}
+                         {% else %}
+                            <option value="" disabled>No models found</option>
+                         {% endif %}
+                     </select>
+                      <div class="invalid-feedback">Please select a model.</div>
+                 </div>
+                 <div class="col-md-auto">
                     <button type="submit" class="btn btn-primary btn-sm w-100">Use Selected Model</button>
-                </div>
+                 </div>
             </div>
         </form>
 
@@ -313,32 +215,22 @@
 
         <!-- Camera and Controls -->
         <div id="camera-container">
-            <div id="camera-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-camera-video-off-fill"
-                    viewBox="0 0 16 16">
-                    <path fill-rule="evenodd"
-                        d="M10.961 12.365a1.99 1.99 0 0 0 .522-1.103l3.11 1.382A1 1 0 0 0 16 11.731V4.269a1 1 0 0 0-1.406-.913l-3.111 1.382A2 2 0 0 0 9.5 3H4.272l6.69 9.365zM2.41 3.51A2 2 0 0 0 0 5.5v5a2 2 0 0 0 2 2h5.672l-7.262-10.167zM10.31 4.158l.79 1.107-1.114 1.56.226.16-1.376 1.927-.096.068.037.052-.007.01.024.034-.011.015.006.009-.016.02-.073.102-.003.004-.01.014-.01.015-.01.014-.003.004-.024.033-.018.024-.03.04-.014.019-.019.025-.004.005-.014.02-.01.013-.015.02-.004.005-.004.005-.015.02l-.143.2a1.47 1.47 0 0 1-1.103.522H1.5a.5.5 0 0 1-.5-.5v-5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1.293l1.31-1.833z" />
+             <div id="camera-placeholder">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-camera-video-off-fill" viewBox="0 0 16 16">
+                     <path fill-rule="evenodd" d="M10.961 12.365a1.99 1.99 0 0 0 .522-1.103l3.11 1.382A1 1 0 0 0 16 11.731V4.269a1 1 0 0 0-1.406-.913l-3.111 1.382A2 2 0 0 0 9.5 3H4.272l6.69 9.365zM2.41 3.51A2 2 0 0 0 0 5.5v5a2 2 0 0 0 2 2h5.672l-7.262-10.167zM10.31 4.158l.79 1.107-1.114 1.56.226.16-1.376 1.927-.096.068.037.052-.007.01.024.034-.011.015.006.009-.016.02-.073.102-.003.004-.01.014-.01.015-.01.014-.003.004-.024.033-.018.024-.03.04-.014.019-.019.025-.004.005-.014.02-.01.013-.015.02-.004.005-.004.005-.015.02l-.143.2a1.47 1.47 0 0 1-1.103.522H1.5a.5.5 0 0 1-.5-.5v-5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1.293l1.31-1.833z"/>
                 </svg>
                 <span>Camera feed is off.</span><br>
                 <small>Click 'Start Camera' below.</small>
             </div>
-            <!-- Add mirrored class dynamically by JS -->
-            <video id="camera-feed" playsinline autoplay muted style="display: none;"></video>
-            <canvas id="snapshot-canvas"></canvas> <!-- Hidden canvas -->
+             <video id="camera-feed" playsinline autoplay muted style="display: none;"></video> <!-- Start hidden -->
+             <canvas id="snapshot-canvas"></canvas> <!-- Hidden canvas -->
         </div>
 
         <!-- Control Buttons -->
         <div class="d-flex justify-content-center gap-3 mt-3 mb-4 flex-wrap control-buttons">
             <button id="toggle-camera" class="btn btn-success btn-lg">
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
-                    style="display: none;"></span>
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
                 <span id="camera-button-text">Start Camera</span>
-            </button>
-            <!-- Switch Camera Button -->
-            <button id="switch-camera" class="btn btn-info btn-lg" disabled>
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
-                    style="display: none;"></span>
-                <span id="switch-camera-button-text">Switch Camera</span>
             </button>
             <button id="clear-sequence" class="btn btn-danger btn-lg" disabled>Clear Sequence</button>
         </div>
@@ -346,12 +238,12 @@
         <!-- Predicted Text and Sequence -->
         <div class="row">
             <div class="col-md-6 mb-3">
-                <div id="predicted-text-container">
-                    <span id="predicted-text-label">Current Sign:</span>
-                    <span id="predicted-output" class="none">None</span>
-                </div>
+                 <div id="predicted-text-container">
+                     <span id="predicted-text-label">Current Sign:</span>
+                     <span id="predicted-output" class="none">None</span>
+                 </div>
             </div>
-            <div class="col-md-6 mb-3">
+             <div class="col-md-6 mb-3">
                 <div id="sequence-container">
                     <span id="sequence-label">Sequence:</span>
                     <span id="sequence-output" class="none">None</span>
@@ -374,9 +266,6 @@
         const toggleCameraButton = document.getElementById('toggle-camera');
         const cameraButtonSpinner = toggleCameraButton.querySelector('.spinner-border');
         const cameraButtonText = document.getElementById('camera-button-text');
-        const switchCameraButton = document.getElementById('switch-camera');
-        const switchCameraSpinner = switchCameraButton.querySelector('.spinner-border');
-        const switchCameraButtonText = document.getElementById('switch-camera-button-text');
         const clearSequenceButton = document.getElementById('clear-sequence');
         const modelForm = document.getElementById('model-form');
         const modelSelect = document.getElementById('model-select');
@@ -388,532 +277,461 @@
         // --- State ---
         let cameraStream = null;
         let isCameraOn = false;
-        let currentDeviceId = null; // Store the ID of the currently used camera
-        let availableVideoDevices = []; // Array to store { deviceId, label, kind }
-        let currentDeviceIndex = -1; // Index in availableVideoDevices array
         let processingIntervalId = null;
-        let isProcessingFrame = false;
-        let isTogglingCamera = false;
-        let isSwitchingCamera = false;
-        let isEnumeratingDevices = false; // Flag during initial enumeration
-        const FRAME_INTERVAL_MS = 150;
-        const FRAME_QUALITY = 0.6;
-        const SWITCH_CAMERA_DELAY_MS = 350; // Slightly increased delay
+        let isProcessingFrame = false; // Prevents sending frames too rapidly if backend is slow
+        let isTogglingCamera = false; // Prevent double clicks while starting/stopping
+        const FRAME_INTERVAL_MS = 150; // Interval between frame sends (Try ~6-7 FPS)
+        const FRAME_QUALITY = 0.6; // JPEG quality for frames (0.1 - 1.0)
 
         // --- Socket.IO Connection ---
         console.log("RTP: Initializing Socket.IO connection...");
         const socket = io({
             reconnectionAttempts: 5,
             timeout: 10000,
-            transports: ['websocket']
+            transports: ['websocket'] // Prefer websocket for lower latency
         });
 
-        // --- Socket Event Handlers (Keep as before) ---
+        // --- Socket Event Handlers ---
         socket.on('connect', () => {
             console.log('RTP: Socket.IO Connected! SID:', socket.id);
             enableForms();
+            // Update dropdown placeholder based on actual content
             if (modelSelect.options.length > 1 && modelSelect.selectedIndex <= 0) {
                 modelSelect.options[0].textContent = '-- Select a model --';
             } else if (modelSelect.options.length <= 1 && modelSelect.options[0]?.disabled) {
-                modelSelect.options[0].textContent = 'No models found';
-                disableForms('No models available');
+                 modelSelect.options[0].textContent = 'No models found';
+                 disableForms('No models available'); // Explicitly disable if no models
             }
+            // Server usually sends status_update on connect with current model & prediction state
         });
+
         socket.on('disconnect', (reason) => {
             console.log('RTP: Socket.IO Disconnected. Reason:', reason);
-            updateStatus(`Disconnected: ${reason}. Please refresh or check server.`, 'alert-danger', false);
-            if (isCameraOn) stopCamera(true);
+            updateStatus(`Disconnected: ${reason}. Please refresh or check server.`, 'alert-danger', false); // Don't auto-hide disconnect msg
+            if (isCameraOn) stopCamera(true); // Force stop camera
             disableForms('Disconnected');
             updateCurrentModelDisplay(null);
             resetPredictionDisplays();
         });
+
         socket.on('connect_error', (err) => {
             console.error('RTP: Socket.IO Connection Error:', err);
-            updateStatus(`Connection failed: ${err.message}. Is the server running?`, 'alert-danger', false);
-            if (isCameraOn) stopCamera(true);
+            updateStatus(`Connection failed: ${err.message}. Is the server running?`, 'alert-danger', false); // Don't auto-hide
+            if (isCameraOn) stopCamera(true); // Force stop camera
             disableForms('Connection Error');
             updateCurrentModelDisplay(null);
             resetPredictionDisplays();
         });
+
         socket.on('prediction_result', (data) => {
-            isProcessingFrame = false;
+             isProcessingFrame = false; // Ready for next frame send attempt
+
+            // Process only if it contains expected real-time keys
             if (data.prediction !== undefined && data.sequence !== undefined) {
-                updatePredictionDisplay(data.prediction);
-                updateSequenceDisplay(data.sequence);
+                 updatePredictionDisplay(data.prediction);
+                 updateSequenceDisplay(data.sequence);
             }
+            // Always update the model display if provided
             if (data.current_model !== undefined) {
                 updateCurrentModelDisplay(data.current_model);
             }
         });
+
         socket.on('status_update', (data) => {
             console.log('RTP: Received status_update:', data);
-            let alertClass = 'alert-info'; let autoHide = true;
+            let alertClass = 'alert-info';
+            let autoHide = true;
             const messageLower = data.message?.toLowerCase() || '';
+
             if (messageLower.includes('error') || messageLower.includes('failed')) {
                 alertClass = 'alert-danger'; autoHide = false;
             } else if (messageLower.includes('warning')) {
-                alertClass = 'alert-warning'; autoHide = true;
+                 alertClass = 'alert-warning'; autoHide = true;
             } else if (messageLower.includes('success') || messageLower.includes('loaded') || messageLower.includes('selected') || messageLower.includes('using model')) {
                 alertClass = 'alert-success'; autoHide = true;
-            } else if (messageLower.includes('cleared') || messageLower.includes('switched camera')) {
-                alertClass = 'alert-info'; autoHide = true;
+            } else if (messageLower.includes('cleared')) {
+                alertClass = 'alert-secondary'; autoHide = true;
             }
             updateStatus(data.message || 'Received status update without message.', alertClass, autoHide);
+
             if (data.current_model !== undefined) {
-                updateCurrentModelDisplay(data.current_model);
+                 updateCurrentModelDisplay(data.current_model);
             }
+
+            // Handle "no models" status specifically
             if (messageLower.includes('no models available') || messageLower.includes('no models found')) {
-                if (modelSelect.options.length <= 1 && modelSelect.options[0]?.disabled) {
-                    disableForms('No models available');
-                    if (isCameraOn) stopCamera(true);
-                }
+                 if (modelSelect.options.length <= 1 && modelSelect.options[0]?.disabled) {
+                      disableForms('No models available');
+                      if (isCameraOn) stopCamera(true); // Stop camera if no model can be used
+                 }
             } else if (alertClass !== 'alert-danger') {
-                if (!isTogglingCamera && !isSwitchingCamera && !isEnumeratingDevices) enableForms(); // Also check enumeration flag
+                // Generally enable if status is not a critical error and not already toggling camera
+                 if (!isTogglingCamera) enableForms();
             }
         });
 
-        // --- Helper Functions (Keep most as before, update button states) ---
+        // --- Helper Functions ---
         function updateStatus(message, alertClass = 'alert-light', autoHide = true) {
-            // (Keep existing implementation)
             if (!statusMessage) return;
+
+            // Clear previous auto-hide timer if exists
             if (statusMessage.hideTimeout) clearTimeout(statusMessage.hideTimeout);
+
             let closeButton = statusMessage.querySelector('.btn-close');
             if (!closeButton) {
-                closeButton = document.createElement('button'); closeButton.type = 'button'; closeButton.className = 'btn-close';
-                closeButton.setAttribute('data-bs-dismiss', 'alert'); closeButton.setAttribute('aria-label', 'Close');
+                closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'btn-close';
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
             }
-            statusMessage.textContent = message; statusMessage.appendChild(closeButton);
-            statusMessage.className = `alert ${alertClass} alert-dismissible fade`;
-            void statusMessage.offsetWidth; statusMessage.classList.add('show');
+            // Set text content (safer than innerHTML)
+            statusMessage.textContent = message;
+            statusMessage.appendChild(closeButton); // Append after setting textContent
+            statusMessage.className = `alert ${alertClass} alert-dismissible fade`; // Ensure fade is present initially
+
+            // Trigger reflow and add 'show' class to start transition
+            void statusMessage.offsetWidth;
+            statusMessage.classList.add('show');
+
+            // Auto-hide logic
             if (autoHide) {
                 statusMessage.hideTimeout = setTimeout(() => {
-                    const bsAlert = bootstrap.Alert.getInstance(statusMessage);
-                    if (bsAlert) { bsAlert.close(); } else { statusMessage.classList.remove('show'); }
-                }, 5000);
+                    // Use Bootstrap's dismiss method if available, otherwise fallback
+                     const bsAlert = bootstrap.Alert.getInstance(statusMessage);
+                     if (bsAlert) {
+                         bsAlert.close();
+                     } else {
+                         statusMessage.classList.remove('show');
+                     }
+                }, 5000); // Hide after 5 seconds
             }
         }
-        function updateCurrentModelDisplay(modelName) { /* (Keep existing) */
-            const display_name = modelName || 'None'; currentModelNameSpan.textContent = display_name;
-            currentModelNameSpan.classList.toggle('none', !modelName); currentModelNameSpan.title = modelName || '';
-        }
-        function updatePredictionDisplay(prediction) { /* (Keep existing) */
+
+        function updateCurrentModelDisplay(modelName) {
+            const display_name = modelName || 'None';
+             // Escape potential HTML before display
+             currentModelNameSpan.textContent = display_name;
+             currentModelNameSpan.classList.toggle('none', !modelName); // Add/remove 'none' class
+             currentModelNameSpan.title = modelName || ''; // Set title for potential tooltip on long names
+         }
+
+         function updatePredictionDisplay(prediction) {
             predictedOutput.textContent = prediction || 'None';
+            // Remove previous status classes
             predictedOutput.classList.remove('none', 'no-hand', 'error');
-            if (!prediction || prediction === 'None') { predictedOutput.classList.add('none'); }
-            else if (prediction === 'No Hand') { predictedOutput.classList.add('no-hand'); }
-            else if (['Error', 'No Model', 'Input Error', 'Predict Error', 'Bad Request', 'Processing Error'].includes(prediction)) {
-                predictedOutput.classList.add('error'); predictedOutput.textContent = 'Error';
+            // Add class based on prediction content
+            if (!prediction || prediction === 'None') {
+                predictedOutput.classList.add('none');
+            } else if (prediction === 'No Hand') {
+                predictedOutput.classList.add('no-hand');
+            } else if (prediction === 'Error' || prediction === 'No Model' || prediction === 'Input Error' || prediction === 'Predict Error' || prediction === 'Bad Request') {
+                predictedOutput.classList.add('error');
+                predictedOutput.textContent = 'Error'; // Simplify display
             }
-        }
-        function updateSequenceDisplay(sequence) { /* (Keep existing) */
-            sequenceOutput.textContent = sequence || 'None';
-            sequenceOutput.classList.toggle('none', !sequence || sequence === 'None');
-        }
-        function resetPredictionDisplays() { /* (Keep existing) */
-            updatePredictionDisplay('None'); updateSequenceDisplay('None');
-        }
+            // No specific class needed for valid letter predictions
+         }
 
-        function setCameraButtonState(state) { // 'idle_on', 'idle_off', 'toggling'
-            isTogglingCamera = (state === 'toggling');
-            toggleCameraButton.disabled = isTogglingCamera || !socket.connected || isSwitchingCamera || isEnumeratingDevices; // Check all busy flags
+         function updateSequenceDisplay(sequence) {
+             sequenceOutput.textContent = sequence || 'None';
+             sequenceOutput.classList.toggle('none', !sequence || sequence === 'None');
+         }
 
-            cameraButtonSpinner.style.display = (state === 'toggling') ? 'inline-block' : 'none';
+         function resetPredictionDisplays() {
+            updatePredictionDisplay('None');
+            updateSequenceDisplay('None');
+         }
 
-            if (state === 'idle_on') {
-                cameraButtonText.textContent = 'Stop Camera';
-                toggleCameraButton.classList.remove('btn-success');
-                toggleCameraButton.classList.add('btn-warning');
-            } else if (state === 'idle_off') {
-                cameraButtonText.textContent = 'Start Camera';
-                toggleCameraButton.classList.remove('btn-warning');
-                toggleCameraButton.classList.add('btn-success');
-            } else { // toggling
-                cameraButtonText.textContent = isCameraOn ? 'Stopping...' : 'Starting...';
-            }
-            // Update switch button state based on camera on/off and device count
-            switchCameraButton.disabled = !(state === 'idle_on') || isTogglingCamera || isSwitchingCamera || !socket.connected || availableVideoDevices.length < 2;
-        }
 
-        function setSwitchButtonState(state) { // 'idle', 'switching'
-            isSwitchingCamera = (state === 'switching');
-            // Disable switch button if switching, camera off, toggling, not connected, or less than 2 devices
-            switchCameraButton.disabled = isSwitchingCamera || !isCameraOn || isTogglingCamera || !socket.connected || availableVideoDevices.length < 2 || isEnumeratingDevices;
-            // Also disable the main toggle button while switching
-            toggleCameraButton.disabled = isSwitchingCamera || isTogglingCamera || !socket.connected || isEnumeratingDevices;
+         function setCameraButtonState(state) { // 'idle_on', 'idle_off', 'toggling'
+             isTogglingCamera = (state === 'toggling');
+             toggleCameraButton.disabled = isTogglingCamera || !socket.connected;
 
-            switchCameraSpinner.style.display = (state === 'switching') ? 'inline-block' : 'none';
-            switchCameraButtonText.textContent = (state === 'switching') ? 'Switching...' : 'Switch Camera';
-        }
+             cameraButtonSpinner.style.display = (state === 'toggling') ? 'inline-block' : 'none';
+
+             if (state === 'idle_on') {
+                 cameraButtonText.textContent = 'Stop Camera';
+                 toggleCameraButton.classList.remove('btn-success');
+                 toggleCameraButton.classList.add('btn-warning');
+             } else if (state === 'idle_off') {
+                 cameraButtonText.textContent = 'Start Camera';
+                 toggleCameraButton.classList.remove('btn-warning');
+                 toggleCameraButton.classList.add('btn-success');
+             } else { // toggling
+                 cameraButtonText.textContent = isCameraOn ? 'Stopping...' : 'Starting...';
+             }
+         }
+
 
         function disableForms(reason = '') {
-            console.log("RTP: Disabling forms, reason:", reason);
-            modelSelect.disabled = true; modelSelect.classList.remove('is-invalid');
-            modelForm.querySelector('button[type="submit"]').disabled = true;
+             console.log("RTP: Disabling forms, reason:", reason);
+             modelSelect.disabled = true;
+             modelSelect.classList.remove('is-invalid'); // Clear validation visual
+             modelForm.querySelector('button[type="submit"]').disabled = true;
 
+            // Disable camera button based on reason
             toggleCameraButton.disabled = true;
-            if (!isTogglingCamera && !isSwitchingCamera && !isEnumeratingDevices) {
-                setCameraButtonState('idle_off');
-                cameraButtonText.textContent = reason || 'Unavailable';
-            }
+             if (!isTogglingCamera) { // Only change text/style if not already toggling
+                setCameraButtonState('idle_off'); // Reset visually but keep disabled
+                cameraButtonText.textContent = reason || 'Unavailable'; // Show reason on button
+             }
 
-            switchCameraButton.disabled = true;
-            if (!isSwitchingCamera && !isTogglingCamera && !isEnumeratingDevices) {
-                setSwitchButtonState('idle');
-                if (availableVideoDevices.length < 2) { // Update text if reason is lack of devices
-                    switchCameraButtonText.textContent = 'Switch N/A';
-                }
-            }
-            clearSequenceButton.disabled = true;
+             clearSequenceButton.disabled = true;
         }
 
         function enableForms() {
-            console.log("RTP: Enabling forms (unless busy).");
-            // Do not enable if any operation is in progress
-            if (isTogglingCamera || isSwitchingCamera || isEnumeratingDevices) {
-                console.log("RTP: Forms remain disabled due to ongoing operation.");
-                return;
-            }
+             console.log("RTP: Enabling forms.");
+             const modelsExist = modelSelect.options.length > 1 || (modelSelect.options.length === 1 && !modelSelect.options[0]?.disabled);
 
-            const modelsExist = modelSelect.options.length > 1 || (modelSelect.options.length === 1 && !modelSelect.options[0]?.disabled);
+             // Enable model selection only if connected and models exist
+             modelSelect.disabled = !(modelsExist && socket.connected);
+             modelForm.querySelector('button[type="submit"]').disabled = modelSelect.disabled;
 
-            modelSelect.disabled = !(modelsExist && socket.connected);
-            modelForm.querySelector('button[type="submit"]').disabled = modelSelect.disabled;
+             // Enable camera button ONLY if connected AND not currently toggling
+             // Keep disabled if no models are available, even if connected
+            if (!isTogglingCamera) {
+                 toggleCameraButton.disabled = !socket.connected || !modelsExist;
+                 if (socket.connected && modelsExist) {
+                      setCameraButtonState(isCameraOn ? 'idle_on' : 'idle_off');
+                 } else {
+                      setCameraButtonState('idle_off'); // Reset button text/style
+                      cameraButtonText.textContent = !socket.connected ? 'Connect First' : 'No Models';
+                      toggleCameraButton.disabled = true;
+                 }
+             } // else: keep disabled if toggling
 
-            toggleCameraButton.disabled = !socket.connected || !modelsExist;
-            if (socket.connected && modelsExist) {
-                setCameraButtonState(isCameraOn ? 'idle_on' : 'idle_off');
-            } else {
-                setCameraButtonState('idle_off');
-                cameraButtonText.textContent = !socket.connected ? 'Connect First' : 'No Models';
-                toggleCameraButton.disabled = true;
-            }
-
-            // Enable switch button ONLY if camera is ON, connected, >1 device available
-            switchCameraButton.disabled = !(isCameraOn && socket.connected && availableVideoDevices.length >= 2);
-            switchCameraButtonText.textContent = (availableVideoDevices.length < 2) ? 'Switch N/A' : 'Switch Camera';
-
-            clearSequenceButton.disabled = !socket.connected;
+             // Enable clear sequence button only if connected
+             clearSequenceButton.disabled = !socket.connected;
         }
 
-        // --- Camera Management ---
 
-        // New function to list cameras
-        async function listCameras() {
-            isEnumeratingDevices = true; // Set flag
-            console.log("RTP: Enumerating video devices...");
-            disableForms("Listing cameras..."); // Disable UI during enumeration
-            availableVideoDevices = []; // Reset list
-            currentDeviceIndex = -1;
-            try {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-                    throw new Error("enumerateDevices() not supported.");
-                }
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                devices.forEach(device => {
-                    if (device.kind === 'videoinput') {
-                        availableVideoDevices.push({ deviceId: device.deviceId, label: device.label || `Camera ${availableVideoDevices.length + 1}`, kind: device.kind });
-                        console.log(`RTP: Found video device: ${device.label || 'Unknown Label'} (ID: ${device.deviceId})`);
-                    }
-                });
+        async function startCamera() {
+             if (!socket.connected) {
+                 updateStatus('Cannot start camera: Not connected to server.', 'alert-warning');
+                 return;
+             }
+             // Check if a model is selected/available
+             if (!currentModelNameSpan.textContent || currentModelNameSpan.textContent === 'None') {
+                  updateStatus('Please select a model before starting the camera.', 'alert-warning');
+                  modelSelect.classList.add('is-invalid'); // Highlight dropdown
+                  return;
+             }
+            if (isCameraOn || isTogglingCamera) return;
 
-                if (availableVideoDevices.length === 0) {
-                    updateStatus("Error: No video input devices found.", "alert-danger", false);
-                } else {
-                    console.log(`RTP: Found ${availableVideoDevices.length} video devices.`);
-                    // Try to find the initial deviceId if camera is already running (e.g., after permission grant)
-                    if (cameraStream) {
-                        const currentTracks = cameraStream.getVideoTracks();
-                        if (currentTracks.length > 0) {
-                            const runningDeviceId = currentTracks[0].getSettings().deviceId;
-                            currentDeviceIndex = availableVideoDevices.findIndex(dev => dev.deviceId === runningDeviceId);
-                            if (currentDeviceIndex !== -1) {
-                                currentDeviceId = runningDeviceId;
-                                console.log(`RTP: Matched running stream to device index: ${currentDeviceIndex}`);
-                            }
-                        }
-                    }
-                    // If no stream running or match failed, default to the first device
-                    if (currentDeviceIndex === -1 && availableVideoDevices.length > 0) {
-                        currentDeviceIndex = 0;
-                        currentDeviceId = availableVideoDevices[0].deviceId;
-                        console.log(`RTP: Defaulting to first device index: 0`);
-                    }
-                }
-
-            } catch (err) {
-                console.error("RTP: Error enumerating devices:", err);
-                updateStatus(`Error listing cameras: ${err.message}`, "alert-danger", false);
-                availableVideoDevices = [];
-                currentDeviceIndex = -1;
-            } finally {
-                isEnumeratingDevices = false; // Clear flag
-                enableForms(); // Re-enable UI based on findings
-            }
-        }
-
-        // Modified startCamera to use deviceId
-        async function startCamera(requestedDeviceId = currentDeviceId) {
-            if (!socket.connected) { /* (Keep existing checks) */ updateStatus('Cannot start camera: Not connected.', 'alert-warning'); return false; }
-            if (!currentModelNameSpan.textContent || currentModelNameSpan.textContent === 'None') { /* (Keep existing checks) */ updateStatus('Please select a model.', 'alert-warning'); modelSelect.classList.add('is-invalid'); return false; }
-            if (isCameraOn || isTogglingCamera || isSwitchingCamera || isEnumeratingDevices) return false; // Check all flags
-
-            // Ensure we have a device list and a target ID
-            if (availableVideoDevices.length === 0) {
-                updateStatus('No cameras found. Cannot start.', 'alert-warning');
-                console.warn("RTP: startCamera called but no devices listed.");
-                return false;
-            }
-            if (!requestedDeviceId && availableVideoDevices.length > 0) {
-                requestedDeviceId = availableVideoDevices[0].deviceId; // Default to first if none provided
-                currentDeviceIndex = 0;
-                console.log("RTP: No deviceId requested, defaulting to first available:", requestedDeviceId);
-            } else if (requestedDeviceId) {
-                // Update index if starting with a specific ID
-                currentDeviceIndex = availableVideoDevices.findIndex(dev => dev.deviceId === requestedDeviceId);
-                if (currentDeviceIndex === -1) {
-                    console.warn(`RTP: Requested deviceId ${requestedDeviceId} not found in list. Defaulting to first.`);
-                    currentDeviceIndex = 0;
-                    requestedDeviceId = availableVideoDevices[0].deviceId;
-                }
-            } else {
-                updateStatus('Cannot determine which camera to start.', 'alert-danger');
-                return false;
-            }
-
-            console.log(`RTP: Attempting to start camera deviceId: ${requestedDeviceId} (Index: ${currentDeviceIndex})...`);
+            console.log("RTP: Attempting to start camera...");
             setCameraButtonState('toggling');
-            setSwitchButtonState('switching'); // Visually disable switch during start
 
             try {
-                const constraints = {
-                    video: {
-                        deviceId: { exact: requestedDeviceId }, // Use exact deviceId
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    },
+                // Request camera stream
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
                     audio: false
-                };
-                console.log("RTP: Using constraints:", JSON.stringify(constraints));
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                 });
                 console.log("RTP: Camera stream obtained.");
                 videoElement.srcObject = cameraStream;
+                placeholderElement.style.display = 'none'; // Hide placeholder
+                videoElement.style.display = 'block';   // Show video
 
-                // Update currentDeviceId state *after* success
-                currentDeviceId = requestedDeviceId;
-                // Heuristic mirroring based on label
-                const currentDeviceLabel = availableVideoDevices[currentDeviceIndex]?.label?.toLowerCase() || '';
-                const shouldMirror = currentDeviceLabel.includes('front') || currentDeviceLabel.includes('user');
-                videoElement.classList.toggle('mirrored', shouldMirror);
-                console.log(`RTP: Device label: "${availableVideoDevices[currentDeviceIndex]?.label}". Mirroring: ${shouldMirror}`);
-
-                placeholderElement.style.display = 'none';
-                videoElement.style.display = 'block';
-
+                // Wait for video metadata to load to get dimensions
                 await new Promise((resolve) => { videoElement.onloadedmetadata = resolve; });
 
+                // Set canvas dimensions based on actual video dimensions
                 canvasElement.width = videoElement.videoWidth;
                 canvasElement.height = videoElement.videoHeight;
-                console.log(`RTP: Camera metadata loaded. Canvas: ${canvasElement.width}x${canvasElement.height}. Device: ${currentDeviceId}`);
+                console.log(`RTP: Camera metadata loaded. Canvas set to ${canvasElement.width}x${canvasElement.height}`);
 
+                // Play the video (needed for drawing frames)
                 await videoElement.play();
                 console.log("RTP: Camera playing.");
 
                 isCameraOn = true;
-                isProcessingFrame = false;
+                isProcessingFrame = false; // Ensure processing flag is reset
                 startProcessingLoop();
-                updateStatus(`Camera started (${availableVideoDevices[currentDeviceIndex]?.label || 'Unknown'}).`, 'alert-info'); // Show label in status
+                updateStatus('Camera started. Processing frames...', 'alert-info');
                 setCameraButtonState('idle_on');
-                setSwitchButtonState('idle');
-                clearSequenceButton.disabled = false;
-                return true;
+                clearSequenceButton.disabled = false; // Enable clear button when camera starts
 
             } catch (error) {
                 console.error('RTP: Error accessing the camera:', error);
-                console.error(`Specific Error Name: ${error.name}, Message: ${error.message}`);
-                let message = `Error starting camera (${availableVideoDevices[currentDeviceIndex]?.label || requestedDeviceId}): ${error.name || 'Unknown Error'}.`;
-                // (Keep detailed error messages as before)
-                if (error.name === "NotAllowedError") message += " Permission denied.";
-                else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") message += ` Camera not found.`;
-                else if (error.name === "NotReadableError") message += " Camera busy or hardware error.";
-                else if (error.name === "OverconstrainedError") message += ` Constraints not satisfied.`;
-                else if (error.name === "AbortError") message += " Request aborted.";
-                else if (error.name === "TypeError") message += " Invalid constraints.";
-                else message += ` Check console.`;
-
-                updateStatus(message, 'alert-danger', false);
-                stopCamera(true); // Force stop and reset UI
-                setSwitchButtonState('idle'); // Ensure switch button is idle after failure
-                // Attempt to relist devices in case the list became invalid
-                await listCameras();
-                return false;
+                let message = `Error accessing camera: ${error.name || 'Unknown Error'}.`;
+                if (error.name === "NotAllowedError") message += " Please grant camera permission and refresh.";
+                else if (error.name === "NotFoundError") message += " No camera found. Ensure it's connected.";
+                else if (error.name === "NotReadableError") message += " Camera might be in use by another app.";
+                else message += ` Check browser console for details.`;
+                updateStatus(message, 'alert-danger', false); // Show error, don't auto-hide
+                stopCamera(true); // Force stop and reset UI state
             }
         }
 
-        // stopCamera remains largely the same, just ensure states are reset
         function stopCamera(forceReset = false) {
-            if ((!isCameraOn && !forceReset) || (isSwitchingCamera && !forceReset)) return;
+             // Prevent stopping if already off unless forced (e.g., on error/disconnect)
+            if (!isCameraOn && !forceReset) return;
 
             console.log("RTP: Stopping camera...");
-            if (!forceReset && !isSwitchingCamera) { setCameraButtonState('toggling'); }
+             if (!forceReset) setCameraButtonState('toggling'); // Show 'Stopping...' unless force resetting
 
-            stopProcessingLoop();
+            stopProcessingLoop(); // Stop sending frames first
 
             if (cameraStream) {
-                cameraStream.getTracks().forEach(track => { track.stop(); });
-                console.log(`RTP: Stopped all tracks for stream.`);
+                cameraStream.getTracks().forEach(track => track.stop());
+                console.log("RTP: Camera tracks stopped.");
             }
-            cameraStream = null; currentDeviceId = null; // Clear current device ID
-            if (videoElement) videoElement.srcObject = null;
-            if (videoElement) videoElement.style.display = 'none';
-            if (placeholderElement) placeholderElement.style.display = 'flex';
-            isCameraOn = false; isProcessingFrame = false;
+            cameraStream = null;
+            if(videoElement) videoElement.srcObject = null; // Release stream from video element
+            if(videoElement) videoElement.style.display = 'none'; // Hide video
+            if(placeholderElement) placeholderElement.style.display = 'flex'; // Show placeholder again
+            isCameraOn = false;
+            isProcessingFrame = false; // Reset flag
 
-            if (!isSwitchingCamera) { // Only reset fully if not part of a switch operation
-                currentDeviceIndex = -1; // Reset index if fully stopped
-                setCameraButtonState('idle_off');
-                setSwitchButtonState('idle');
-            }
-            if (clearSequenceButton) clearSequenceButton.disabled = true;
+            setCameraButtonState('idle_off'); // Set final button state
+            if(clearSequenceButton) clearSequenceButton.disabled = true; // Disable clear button
 
-            if (!forceReset) {
+             // Reset prediction display only if not forced (forced might be due to error/disconnect)
+             if (!forceReset) {
                 resetPredictionDisplays();
                 updateStatus('Camera stopped.', 'alert-secondary');
-            }
+             }
             console.log('RTP: Camera fully stopped.');
-
-            if (!isSwitchingCamera) { enableForms(); } // Re-enable forms only if not switching
+            // Re-evaluate form enable state after stopping
+            enableForms();
         }
 
-        // start/stopProcessingLoop remain the same
-        function startProcessingLoop() { /* (Keep existing) */
-            if (processingIntervalId) return;
-            if (!isCameraOn || !socket.connected) return;
-            console.log(`RTP: Starting frame processing loop...`);
-            isProcessingFrame = false;
+        function startProcessingLoop() {
+            if (processingIntervalId) return; // Already running
+            if (!isCameraOn || !socket.connected) {
+                console.log("RTP: Conditions not met to start processing loop (Camera On:", isCameraOn, "Connected:", socket.connected, ")");
+                return;
+             }
+            console.log(`RTP: Starting frame processing loop (Interval: ${FRAME_INTERVAL_MS}ms, Quality: ${FRAME_QUALITY}).`);
+            isProcessingFrame = false; // Ensure it starts clean
             processingIntervalId = setInterval(sendFrameToServer, FRAME_INTERVAL_MS);
         }
-        function stopProcessingLoop() { /* (Keep existing) */
+
+        function stopProcessingLoop() {
             if (processingIntervalId) {
-                clearInterval(processingIntervalId); processingIntervalId = null;
-                isProcessingFrame = false; console.log('RTP: Frame processing loop stopped.');
+                clearInterval(processingIntervalId);
+                processingIntervalId = null;
+                isProcessingFrame = false; // Reset flag
+                console.log('RTP: Frame processing loop stopped.');
             }
         }
 
-        // sendFrameToServer needs to check current mirroring state based on label heuristic
         function sendFrameToServer() {
-            if (isProcessingFrame || !isCameraOn || !socket.connected || !videoElement || videoElement.paused || videoElement.ended || videoElement.readyState < videoElement.HAVE_CURRENT_DATA) { return; }
+            // Check multiple conditions before proceeding
+             if (isProcessingFrame || !isCameraOn || !socket.connected || !videoElement || videoElement.paused || videoElement.ended || videoElement.readyState < videoElement.HAVE_CURRENT_DATA) {
+                 // console.log("RTP: Skipping frame send. Processing:", isProcessingFrame, "CameraOn:", isCameraOn, "Connected:", socket.connected, "ReadyState:", videoElement?.readyState);
+                 return; // Don't send if busy, camera off, disconnected, or video not ready
+             }
 
-            isProcessingFrame = true;
+            isProcessingFrame = true; // Set flag immediately to prevent next interval from sending
 
             try {
-                if (canvasElement.width !== videoElement.videoWidth || canvasElement.height !== videoElement.videoHeight) {
-                    canvasElement.width = videoElement.videoWidth; canvasElement.height = videoElement.videoHeight;
-                }
+                // Ensure canvas dimensions match video (should be set on start, but double-check)
+                 if (canvasElement.width !== videoElement.videoWidth || canvasElement.height !== videoElement.videoHeight) {
+                     canvasElement.width = videoElement.videoWidth;
+                     canvasElement.height = videoElement.videoHeight;
+                 }
 
-                // --- Mirroring based on video element's class (set during startCamera) ---
-                const shouldMirror = videoElement.classList.contains('mirrored');
-                ctx.save();
-                if (shouldMirror) {
-                    ctx.scale(-1, 1);
-                    ctx.translate(-canvasElement.width, 0);
-                }
+                 // Draw current video frame onto the hidden canvas
+                 ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+                 // Get image data from canvas as low-quality JPEG base64
+                 const imageData = canvasElement.toDataURL('image/jpeg', FRAME_QUALITY);
 
-                ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-                ctx.restore();
-                // --- End mirroring logic ---
-
-                const imageData = canvasElement.toDataURL('image/jpeg', FRAME_QUALITY);
-
-                if (imageData && imageData.includes(',')) {
+                 // Check if data extraction worked
+                 if (imageData && imageData.includes(',')) {
                     socket.emit('process_frame', { image: imageData.split(',')[1] });
-                } else {
-                    console.warn("RTP: Failed to get valid image data from canvas."); isProcessingFrame = false;
-                }
+                    // isProcessingFrame is reset in the 'prediction_result' handler
+                 } else {
+                     console.warn("RTP: Failed to get valid image data from canvas.");
+                     isProcessingFrame = false; // Reset flag if data extraction failed
+                 }
             } catch (error) {
-                console.error("RTP: Error capturing or sending frame:", error); isProcessingFrame = false;
+                console.error("RTP: Error capturing or sending frame:", error);
+                 isProcessingFrame = false; // Reset flag on error to allow next attempt
             }
         }
 
         // --- Event Listeners ---
         toggleCameraButton.addEventListener('click', () => {
-            if (isTogglingCamera || isSwitchingCamera || isEnumeratingDevices) return;
-            if (isCameraOn) { stopCamera(); }
-            else { startCamera(); } // Will use default/first camera if currentDeviceId is null
+            if (isTogglingCamera) return; // Prevent clicks while changing state
+
+            if (isCameraOn) {
+                stopCamera();
+            } else {
+                startCamera(); // Async function call
+            }
         });
 
-        // Modified Switch Camera Logic
-        switchCameraButton.addEventListener('click', async () => {
-            if (isSwitchingCamera || isTogglingCamera || !isCameraOn || availableVideoDevices.length < 2 || isEnumeratingDevices) return;
+        clearSequenceButton.addEventListener('click', () => {
+             if (!socket.connected) {
+                 updateStatus('Cannot clear sequence: Not connected.', 'alert-warning');
+                 return;
+             }
+            console.log('RTP: Requesting sequence clear...');
+            socket.emit('clear_sequence');
+            // Client-side update for immediate feedback (server confirms via prediction_result/status_update)
+            updateSequenceDisplay('None');
+            updatePredictionDisplay('None'); // Also clear current prediction visually
+            updateStatus('Sequence cleared.', 'alert-secondary');
+        });
 
-            setSwitchButtonState('switching'); // Show spinner, disable buttons
+        modelForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+             if (!socket.connected) {
+                 updateStatus('Cannot select model: Not connected.', 'alert-warning');
+                 return;
+             }
+            const selectedModel = modelSelect.value;
+            modelSelect.classList.remove('is-invalid'); // Clear previous validation
 
-            // Calculate next device index
-            const nextIndex = (currentDeviceIndex + 1) % availableVideoDevices.length;
-            const nextDevice = availableVideoDevices[nextIndex];
-            console.log(`RTP: Requesting camera switch. Current: ${currentDeviceIndex} (${currentDeviceId}), Next: ${nextIndex} (${nextDevice.deviceId})`);
-
-            // 1. Stop current camera
-            stopCamera(true); // Force stop
-
-            // 2. Wait
-            console.log(`RTP: Waiting ${SWITCH_CAMERA_DELAY_MS}ms...`);
-            await new Promise(resolve => setTimeout(resolve, SWITCH_CAMERA_DELAY_MS));
-
-            // 3. Start next camera
-            console.log(`RTP: Attempting to start next camera: ${nextDevice.deviceId}`);
-            const success = await startCamera(nextDevice.deviceId); // Use the next device ID
-
-            if (success) {
-                console.log(`RTP: Successfully switched to camera ${currentDeviceIndex} (${currentDeviceId})`);
-                // Status updated within startCamera
-            } else {
-                console.error(`RTP: Failed to switch to camera ${nextDevice.label} (${nextDevice.deviceId}). Camera remains off.`);
-                // Error shown by startCamera, UI reset by stopCamera(true)
+            if (!selectedModel) {
+                updateStatus('Please select a model first.', 'alert-warning');
+                modelSelect.classList.add('is-invalid'); // Show validation feedback
+                return;
             }
 
-            // Reset switching state and re-evaluate UI enable state
-            setSwitchButtonState('idle');
-            enableForms();
+            console.log(`RTP: Requesting model change to: ${selectedModel}`);
+            socket.emit('select_model', { model_name: selectedModel });
+            updateStatus(`Requesting to use model: ${selectedModel}...`, 'alert-info');
+            resetPredictionDisplays(); // Reset predictions immediately on model change request
+            // Disable form briefly while switching? Maybe not necessary if backend confirms quickly.
         });
 
-        clearSequenceButton.addEventListener('click', () => { /* (Keep existing) */
-            if (!socket.connected) { updateStatus('Cannot clear sequence: Not connected.', 'alert-warning'); return; }
-            console.log('RTP: Requesting sequence clear...'); socket.emit('clear_sequence');
-            updateSequenceDisplay('None'); updatePredictionDisplay('None');
-            updateStatus('Sequence cleared.', 'alert-info');
-        });
-        modelForm.addEventListener('submit', (e) => { /* (Keep existing) */
-            e.preventDefault(); if (!socket.connected) { updateStatus('Cannot select model: Not connected.', 'alert-warning'); return; }
-            const selectedModel = modelSelect.value; modelSelect.classList.remove('is-invalid');
-            if (!selectedModel) { updateStatus('Please select a model first.', 'alert-warning'); modelSelect.classList.add('is-invalid'); return; }
-            console.log(`RTP: Requesting model change to: ${selectedModel}`); socket.emit('select_model', { model_name: selectedModel });
-            updateStatus(`Requesting to use model: ${selectedModel}...`, 'alert-info'); resetPredictionDisplays();
-        });
-        modelSelect.addEventListener('change', () => { modelSelect.classList.remove('is-invalid'); });
+        // Clear validation on model select change
+         modelSelect.addEventListener('change', () => {
+            modelSelect.classList.remove('is-invalid');
+         });
 
-        // --- Page Lifecycle Handlers (Keep existing) ---
-        window.addEventListener('beforeunload', () => { console.log("RTP: Unloading page..."); if (isCameraOn) { stopCamera(true); } socket.disconnect(); });
+        // --- Page Lifecycle Handlers ---
+        // Stop camera/processing on page unload/hide to release resources
+        window.addEventListener('beforeunload', () => {
+            console.log("RTP: Page unloading, stopping camera and disconnecting socket.");
+            if (isCameraOn) { stopCamera(true); } // Force stop camera
+            socket.disconnect(); // Explicitly disconnect socket
+        });
+
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) { console.log("RTP: Page hidden..."); stopProcessingLoop(); }
-            else if (isCameraOn && socket.connected) { console.log("RTP: Page visible..."); isProcessingFrame = false; startProcessingLoop(); }
-        });
+             if (document.hidden) {
+                 console.log("RTP: Page hidden, stopping processing loop.");
+                 stopProcessingLoop(); // Stop sending frames when tab is not visible
+             } else if (isCameraOn && socket.connected) {
+                 console.log("RTP: Page visible, restarting processing loop.");
+                 // Resume processing only if camera is supposed to be on and connected
+                 isProcessingFrame = false; // Reset flag before restarting loop
+                 startProcessingLoop();
+             }
+         });
 
         // --- Initial Setup ---
-        async function initializePage() { // Make async
-            console.log("RTP: Running initial page load setup.");
-            videoElement.style.display = 'none'; placeholderElement.style.display = 'flex';
-            updateCurrentModelDisplay(null); resetPredictionDisplays();
+        console.log("RTP: Running initial page load setup.");
+        videoElement.style.display = 'none';
+        placeholderElement.style.display = 'flex';
+        updateCurrentModelDisplay(null); // Initialize model display
+        resetPredictionDisplays(); // Initialize prediction displays
 
-            // List cameras *first* before setting initial button states
-            await listCameras(); // Wait for enumeration to complete
-
-            setSwitchButtonState('idle'); // Set initial state based on enumeration results
-            disableForms('Connecting...'); // Set initial disabled state (will be updated on connect)
-        }
-
-        initializePage(); // Run setup
+        // Initial form state based on connection (will be updated on 'connect' event)
+        disableForms('Connecting...');
 
     </script>
 </body>
-
 </html>
