@@ -1,240 +1,214 @@
-﻿# AI-Powered ASL Translator 🤖🤟➡️📄
+# 🧠🤟 AI-Powered ASL Translator
 
-**Translate American Sign Language in real-time or from images using AI. Train and compare custom models easily via a web interface.**
+**Translate American Sign Language into text using AI — real-time via webcam or through uploaded images. Train and compare ML models easily with a beautiful web interface.**
 
-This project provides a comprehensive, user-friendly platform leveraging computer vision and machine learning to bridge the communication gap for ASL users.
+> Bridging the gap between silence and speech using Computer Vision and Machine Learning.
 
+**🔗 Live Demo:** [asl-translator-x4wf.onrender.com](https://asl-translator-x4wf.onrender.com)  
+**📁 GitHub Repo:** [github.com/miyasajid19/ASL-Translator](https://github.com/miyasajid19/ASL-Translator.git)
 
----
-
-## ✨ Key Features
-
-*   **🚀 Real-Time Translation:** Live ASL sign recognition via webcam with sequence building.
-*   **🖼️ Image-Based Recognition:** Upload single or multiple images for sign prediction.
-*   **🔧 Custom Model Training:** Train models (Random Forest, LogReg, SVM, NB, Decision Tree, LDA) on your datasets.
-*   **📊 Model Comparison:** Evaluate and visualize the performance of different algorithms side-by-side.
-*   **📈 Interactive Visualizations:** Uses Plotly & Chart.js for clear presentation of results and data insights.
-*   **⚙️ Flexible Model Selection:** Easily switch between different trained models for prediction tasks.
+![image](https://github.com/user-attachments/assets/2b68dbc6-43f2-4baf-a7b2-9ad75ab7c6cc)
+  
 
 ---
 
-## 📚 Table of Contents
+## ✨ Features
 
-*   [Technology Stack](#technology-stack-)
-*   [Setup and Installation](#setup-and-installation-%EF%B8%8F)
-*   [Directory Structure](#directory-structure-)
-*   [Usage Guide](#usage-guide-)
-*   [Data Formats](#data-formats-)
-*   [Configuration](#configuration-)
-*   [Contributing](#contributing-)
-*   [Future Enhancements](#future-enhancements-%EF%B8%8F)
-*   [License](#license-%EF%B8%8F)
-*   [Acknowledgements](#acknowledgements-)
+- **📹 Real-Time Translation:** Translate ASL signs via webcam using MediaPipe + Scikit-learn.
+- **🖼️ Image-Based Detection:** Upload multiple images and recognize ASL signs with your trained model.
+- **🧠 Train Custom Models:** Choose from ML classifiers like Random Forest, SVM, Logistic Regression, etc.
+- **📊 Compare Algorithms:** Evaluate multiple classifiers on the same dataset with interactive visualizations.
+- **📈 Insightful Charts:** Built-in Plotly and Chart.js integration for data insights.
+- **🧩 Modular Design:** Easy to extend or modify any component — backend, models, or UI.
 
 ---
 
-## 🛠️ Technology Stack
+## 🧰 Tech Stack
 
-*   **Backend:**
-    *   Python 3.8+
-    *   Flask & Flask-SocketIO (Web Framework & Real-time)
-    *   OpenCV (`opencv-python-headless` or `opencv-python`)
-    *   MediaPipe (Hand Landmark Detection)
-    *   Scikit-learn (Machine Learning)
-    *   NumPy & Pandas (Data Handling)
-    *   Plotly (Python Charting)
-*   **Frontend:**
-    *   HTML5, CSS3 (Bootstrap 5)
-    *   JavaScript (jQuery, Vanilla JS)
-    *   Socket.IO Client
-    *   Plotly.js & Chart.js (Chart Rendering)
-*   **Environment:**
-    *   `pip` & `venv` (Package & Environment Management)
+**Backend**
+- Python 3.8+
+- Flask + Flask-SocketIO
+- OpenCV
+- MediaPipe (Google)
+- Scikit-learn
+- Pandas, NumPy
+
+**Frontend**
+- HTML, CSS (Bootstrap 5)
+- JavaScript (jQuery, vanilla)
+- Plotly.js & Chart.js
+- Socket.IO Client
 
 ---
 
-## ⚙️ Setup and Installation
+## 🚀 Getting Started
 
-Follow these steps to get the application running locally:
+### Prerequisites
 
-1.  **Prerequisites:**
-    *   Python 3.8 or higher installed.
-    *   `pip` (usually comes with Python).
-    *   Git installed.
+- Python 3.8+
+- `pip`
+- Git
+- Webcam (for RTP)
 
-2.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/miyasajid19/ASL-Translator.git
-    cd ASL-Translator
-    ```
-    
-3.  **Create & Activate Virtual Environment (Highly Recommended):**
-    *   *Why?* Isolates project dependencies, preventing conflicts.
-    *   On macOS/Linux:
-        ```bash
-        python3 -m venv venv
-        source venv/bin/activate
-        ```
-    *   On Windows:
-        ```bash
-        python -m venv venv
-        .\venv\Scripts\activate
-        ```
-    *   *You should see `(venv)` prefixed to your terminal prompt.*
+### Installation
 
-4.  **Install Dependencies:**
-    *   Ensure you have a `requirements.txt`. If not, create one from your working environment: `pip freeze > requirements.txt`.
-    *   Install packages:
-        ```bash
-        pip install -r requirements.txt
-        ```
-    *   **Note:** `opencv-python` and `mediapipe` can sometimes have OS-specific issues (especially on servers or specific hardware). If installation fails, consult their official documentation for troubleshooting. Consider using `opencv-python-headless` if you don't need GUI features from OpenCV itself.
+```bash
+git clone https://github.com/miyasajid19/ASL-Translator.git
+cd ASL-Translator
 
-5.  **Configure the Flask Secret Key:**
-    *   **CRITICAL:** Flask needs this for security (e.g., session management).
-    *   **Method 1: Environment Variable (Best Practice):**
-        Set `SECRET_KEY` in your terminal *before* running the app:
-        ```bash
-        # macOS/Linux
-        export SECRET_KEY='generate_a_strong_random_secret_key_here'
+# Create and activate virtual environment
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-        # Windows (Command Prompt)
-        set SECRET_KEY=generate_a_strong_random_secret_key_here
+# Install dependencies
+pip install -r requirements.txt
+```
 
-        # Windows (PowerShell)
-        $env:SECRET_KEY = 'generate_a_strong_random_secret_key_here'
-        ```
-        *(Use a truly random string. Online generators can help.)*
-    *   **Method 2: In Code (Development ONLY):**
-        Edit `main.py` (around line 43) - **NOT recommended for production or public repos!**
-        ```python
-        app.config['SECRET_KEY'] = 'a_temporary_dev_secret_key_123!' # Change immediately!
-        ```
+### Secret Key Setup
 
-6.  **Run the Application:**
-    ```bash
-    python main.py
-    ```
+```bash
+# macOS/Linux
+export SECRET_KEY="your_random_secure_key"
+# Windows CMD
+set SECRET_KEY=your_random_secure_key
+```
 
-7.  **Access:**
-    Open your browser and navigate to `http://localhost:5000`.
+### Run the App
+
+```bash
+python main.py
+# Visit http://localhost:5000
+```
 
 ---
 
-    ```plaintext
-    your-repo-name/
-    ├── main.py                # Core Flask application logic
-    ├── requirements.txt       # Python package list
-    ├── static/
-    │   ├── files/
-    │   │   ├── datasets/      # Input datasets (.pkl format)
-    │   │   └── models/        # Saved trained models (.pkl format)
-    ├── templates/
-    │   ├── index.html         # Landing page
-    │   ├── real_time_processing.html
-    │   ├── image_processing.html
-    │   ├── train.html
-    │   └── compare_models.html
-    ├── venv/                  # Python virtual environment (if created)
-    └── README.md              # This documentation file
-    ```
+## 🗂️ Folder Structure
 
-*   Put your datasets in `static/files/datasets/`.
-*   Trained models are automatically saved to `static/files/models/`.
+```
+ASL-Translator/
+├── main.py
+├── requirements.txt
+├── static/
+│   └── files/
+│       ├── datasets/    # Input datasets (.pkl)
+│       └── models/      # Trained models (.pkl)
+├── templates/
+│   ├── index.html
+│   ├── real_time_processing.html
+│   ├── image_processing.html
+│   ├── train.html
+│   └── compare_models.html
+└── README.md
+```
 
 ---
 
-## 📖 Usage Guide
+## 🧪 How to Use
 
-Navigate the application using the top navigation bar:
+### 🔴 Real-Time ASL (`/RTP`)
+- Choose a trained model.
+- Start webcam.
+- Perform ASL signs — see predictions live and track recognized sequence.
 
-1.  **Home (`/`)**: Overview and quick links to features.
-2.  **Real-Time (`/RTP`)**:
-    *   Select an available trained model.
-    *   Click "Start Camera" (grant permissions).
-    *   Perform ASL signs; see the "Current Sign" update.
-    *   The "Sequence" builds recognized letters.
-    *   "Clear Sequence" resets the output. "Stop Camera" releases the webcam.
-3.  **Image Upload (`/ImageProcessing`)**:
-    *   Select a model.
-    *   Upload one or more sign language images.
-    *   Click "Process Images".
-    *   View individual predictions and the combined sequence.
-4.  **Train Model (`/train`)**:
-    *   Choose a `.pkl` dataset from the `datasets` folder.
-    *   Pick a training algorithm (e.g., SVM, Random Forest).
-    *   Provide a unique, valid name for the new model.
-    *   Click "Train Model". View results (accuracy, time, plots) upon completion.
-    *   The model is saved to the `models` folder.
-5.  **Compare Models (`/compare`)**:
-    *   Select a dataset.
-    *   Check multiple algorithms to compare.
-    *   Click "Compare Selected Models".
-    *   Models are trained temporarily for evaluation (*not saved*).
-    *   Results are shown in a table and performance charts.
+### 🖼️ Image Upload (`/ImageProcessing`)
+- Choose a model.
+- Upload multiple images.
+- See individual predictions + combined sequence output.
+
+### 📚 Train Model (`/train`)
+- Select dataset + algorithm.
+- Enter a unique model name.
+- View accuracy, training time, plots — model is saved.
+
+### 📊 Compare Models (`/compare`)
+- Choose a dataset + multiple algorithms.
+- Get detailed metrics (accuracy, precision, F1-score).
+- Compare results in charts & tables.
 
 ---
 
-## 📄 Data Formats
+## 📦 Data Format
 
-*   **Datasets (`.pkl` in `static/files/datasets/`):**
-    *   Must be Python pickle files containing a single **dictionary**.
-    *   Required dictionary keys:
-        *   `'data'`: A list. Each element in this list corresponds to one sign sample's features. **Each element is expected to be a list or NumPy array of 42 floating-point numbers (21 landmarks \* \[x, y] coordinates) flattened.**
-        *   `'label'`: A list containing the string label (e.g., 'A', 'B', 'Hello') for each corresponding sample in the `'data'` list. The length must match `len(data)`.
-*   **Models (`.pkl` in `static/files/models/`):**
-    *   Saved by the `/train` process.
-    *   Pickle files containing a dictionary with:
-        *   `'model'`: The trained scikit-learn classifier object.
-        *   Metadata: `'accuracy'`, `'training_duration_sec'`, `'expected_features'`, `'algorithm_key'`, `'dataset_used'`, timestamps, etc.
+### Datasets (`.pkl`)
+```python
+{
+  'data': [list of 42 floats],  # Flattened (x,y) hand landmarks
+  'label': ['A', 'B', 'Hello', ...]
+}
+```
+
+### Models (`.pkl`)
+```python
+{
+  'model': sklearn classifier,
+  'accuracy': float,
+  'algorithm_key': str,
+  ...
+}
+```
 
 ---
 
-## 🔧 Configuration
+## ⚙️ Configuration Highlights
 
-Key settings are located near the top of `main.py`:
+In `main.py`:
 
-*   **`SECRET_KEY`**: See Setup section. **Crucial for security.**
-*   **`MODEL_DIR` / `DATASET_DIR`**: File paths for models and datasets. Defaults to subdirectories within `./static/files/`.
-*   **`EXPECTED_LANDMARK_FEATURES`**: Currently `42`. Ensure datasets and processing align.
-*   **`NO_HAND_TIMEOUT`**: Seconds (float) to wait without detecting a hand before resetting the real-time sequence (default: `2.0`).
-*   **`DEFAULT_MODEL_NAME`**: Tries to auto-load this model (`.pkl` filename) on connection if available.
+```python
+SECRET_KEY = os.environ.get("SECRET_KEY")
+MODEL_DIR = './static/files/models/'
+DATASET_DIR = './static/files/datasets/'
+EXPECTED_LANDMARK_FEATURES = 42
+NO_HAND_TIMEOUT = 2.0
+```
+
+---
+
+## 🛣 Roadmap
+
+- [x] Webcam-based static ASL translation
+- [x] Image batch upload
+- [x] Model training & saving
+- [x] Comparison of classifiers
+- [ ] Dynamic sign recognition (word-level or sentence-level)
+- [ ] Dataset creation module
+- [ ] Docker deployment support
+- [ ] Speech output integration (TTS)
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you'd like to help improve the ASL Translator:
+```bash
+# Fork -> Clone -> Create Branch -> Commit -> PR
+git checkout -b feature/your-feature-name
+```
 
-1.  **Fork** the repository.
-2.  Create a new **branch** for your feature or bug fix (`git checkout -b feature/your-feature-name`).
-3.  Make your changes and **commit** them (`git commit -m 'Add some feature'`).
-4.  **Push** to your branch (`git push origin feature/your-feature-name`).
-5.  Open a **Pull Request** against the `main` branch of the original repository.
-
-Please provide clear descriptions of your changes and ensure your code follows general Python best practices. If adding major features, consider opening an issue first to discuss the approach.
+Please follow PEP8 and document major changes. Open issues for discussions.
 
 ---
 
-## 🚀 Future Enhancements
+## ⚖️ License
 
-Potential ideas for future development:
-
-*   Support for a wider range of ASL signs (including dynamic signs/words).
-*   Improved UI/UX design.
-*   Option to create/collect datasets directly through the interface.
-*   Integration with text-to-speech for spoken output.
-*   Deployment options (e.g., Dockerfile, instructions for platforms like Heroku/PythonAnywhere).
-*   More advanced model architectures (e.g., LSTMs, Transformers for sequences).
-*   Performance optimization for real-time processing.
+Licensed under the **MIT License**.  
+See [`LICENSE`](./LICENSE) for more details.
 
 ---
 
+## 🙏 Credits
 
-## 🙏 Acknowledgements
+- [MediaPipe](https://mediapipe.dev/)
+- [Scikit-learn](https://scikit-learn.org/)
+- [Flask](https://flask.palletsprojects.com/)
+- [OpenCV](https://opencv.org/)
+- [Bootstrap](https://getbootstrap.com/)
+- [Plotly](https://plotly.com/)
+- [Chart.js](https://www.chartjs.org/)
 
-*   **Google MediaPipe** for their invaluable hand tracking solution.
-*   **Scikit-learn** developers for the robust machine learning library.
-*   The **Flask** and **Flask-SocketIO** teams for the web framework.
-*   **OpenCV** for image processing capabilities.
-*   **Bootstrap**, **Plotly**, and **Chart.js** for frontend components and visualization.
+---
+
+Made with ❤️ by **Sajid Miya**
+
+[🔗 Live App](https://asl-translator-x4wf.onrender.com) • [📁 GitHub](https://github.com/miyasajid19/ASL-Translator.git)
