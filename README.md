@@ -136,7 +136,7 @@ ASL-Translator/
 ```python
 {
   'data': [list of 42 floats],  # Flattened (x,y) hand landmarks
-  'label': ['A', 'B', 'Hello', ...]
+  'label': ['A', 'B', 'C', ...]
 }
 ```
 
