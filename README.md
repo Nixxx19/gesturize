@@ -1,6 +1,6 @@
 # AI-Powered SL Translator
 
-> Bridging the gap between silence and speech using Computer Vision and Machine Learning.
+Bridging the gap between silence and speech using Computer Vision and Machine Learning.
 
 **🔗 Live Demo:** [asl-translator-x4wf.onrender.com](https://asl-translator-x4wf.onrender.com)  
 
@@ -43,3 +43,4 @@
 - `pip`
 - Git
 - Webcam (for RTP)
+
